@@ -1,0 +1,13 @@
+{
+  "db": {
+    "ip": "127.0.0.1",
+    "port": 3306,
+    "userName": "amir",
+    "password": "mirzaei",
+    "dbName": "sample"
+  },
+  "web": {
+    "bindingIpAddress": "0.0.0.0",
+    "port": 8071
+  }
+}
