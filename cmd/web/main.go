@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
+	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
 	"log"
 	"net/http"
-	"os"
 )
 
 var configPath string
@@ -16,17 +16,23 @@ func init() {
 }
 
 func main() {
-	f, err := os.OpenFile("log.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		panic(err)
-	}
-	log.SetOutput(f)
+	logger := file.NewLogger(file.LogDaily, "log")
+	log.SetOutput(logger)
+	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC)
+
+	webLoggerFile := file.NewLogger(file.LogHourly, "weblog")
+	webLogger := log.New(
+		webLoggerFile, "",
+		log.Ltime|log.Lshortfile|log.LUTC|log.Lmsgprefix,
+	)
 	cfg := config.LoadConfig(configPath)
-	_ = cfg
 	mux := http.NewServeMux()
 	srv := &http.Server{
-		Handler: mux,
-		Addr:    cfg.GetWeb().GetAddress(),
+		Handler:  mux,
+		Addr:     cfg.GetWeb().GetAddress(),
+		ErrorLog: webLogger,
 	}
+
+	log.Printf("initialize web server in address: %s", cfg.GetWeb().GetAddress())
 	log.Fatalln(srv.ListenAndServe())
 }
