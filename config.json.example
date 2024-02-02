@@ -8,6 +8,10 @@
   },
   "web": {
     "bindingIpAddress": "0.0.0.0",
-    "port": 8071
+    "port": 8071,
+    "readTimeOutInSec": 7,
+    "idleTimeoutInSec": 10,
+    "writeTimeoutInSec": 20,
+    "readHeaderTimeoutInSec": 1
   }
 }

@@ -24,7 +24,7 @@ func main() {
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	logger := file.NewLogger(file.LogDaily, "log")
+	logger := file.NewLogger(file.LogHourly, "log")
 	log.SetOutput(logger)
 	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC)
 
@@ -39,10 +39,10 @@ func main() {
 		cfg.GetWeb().GetAddress(),
 		webLogger,
 		1<<11,
-		time.Duration(cfg.GetWeb().IdleTimeoutInSec)*time.Second,
-		time.Duration(cfg.GetWeb().ReadTimeOutInSec)*time.Second,
-		time.Duration(cfg.GetWeb().WriteTimeoutInSec)*time.Second,
-		time.Duration(cfg.GetWeb().ReadHeaderTimeoutInSec)*time.Second,
+		cfg.GetWeb().GetIdleTimeout(),
+		cfg.GetWeb().GetReadTimeOut(),
+		cfg.GetWeb().GetWriteTimeout(),
+		cfg.GetWeb().GetReadHeaderTimeout(),
 	)
 	log.Printf("initialize web server in address: %s", cfg.GetWeb().GetAddress())
 	go func() {
