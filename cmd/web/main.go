@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/AmirMirzayi/clean_architecture/app/router"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
 	"github.com/AmirMirzayi/clean_architecture/pkg/web"
@@ -44,10 +45,11 @@ func main() {
 		cfg.GetWeb().GetWriteTimeout(),
 		cfg.GetWeb().GetReadHeaderTimeout(),
 	)
-	log.Printf("initialize web server in address: %s", cfg.GetWeb().GetAddress())
+	router.RegisterHttpRoutes(webServer.GetMuxHandler())
 	go func() {
 		log.Panic(webServer.Run())
 	}()
+	log.Printf("initialize web server in address: %s", cfg.GetWeb().GetAddress())
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
