@@ -5,7 +5,9 @@ import (
 	"flag"
 	"github.com/AmirMirzayi/clean_architecture/app/router"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
+	"github.com/AmirMirzayi/clean_architecture/pkg/logger"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
+	weblog "github.com/AmirMirzayi/clean_architecture/pkg/logger/web"
 	"github.com/AmirMirzayi/clean_architecture/pkg/web"
 	"log"
 	"os"
@@ -25,16 +27,21 @@ func main() {
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	logger := file.NewLogger(file.LogHourly, "log")
-	log.SetOutput(logger)
+	cfg := config.LoadConfig(configPath)
+
+	fileLogger := file.NewLogger(file.LogHourly, "log")
+	theWebLog := weblog.NewLogger(cfg.GetLoggerURL())
+	// log on file & http url same time
+	complexLogger := logger.NewComplexLogger(fileLogger, theWebLog)
+
 	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC)
+	log.SetOutput(complexLogger)
 
 	webLoggerFile := file.NewLogger(file.LogHourly, "weblog")
 	webLogger := log.New(
 		webLoggerFile, "",
 		log.Ltime|log.Lshortfile|log.LUTC|log.Lmsgprefix,
 	)
-	cfg := config.LoadConfig(configPath)
 
 	webServer := web.NewServer(
 		cfg.GetWeb().GetAddress(),

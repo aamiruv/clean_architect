@@ -13,5 +13,6 @@
     "idleTimeoutInSec": 10,
     "writeTimeoutInSec": 20,
     "readHeaderTimeoutInSec": 1
-  }
+  },
+  "loggerURL": "http://127.0.0.1:8080/ping"
 }
