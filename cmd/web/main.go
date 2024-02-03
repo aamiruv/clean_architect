@@ -5,6 +5,7 @@ import (
 	"flag"
 	"github.com/AmirMirzayi/clean_architecture/api/proto/auth"
 	"github.com/AmirMirzayi/clean_architecture/api/router"
+	"github.com/AmirMirzayi/clean_architecture/internal/auth/adapter/controller"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
@@ -65,7 +66,9 @@ func main() {
 		log.Panic(grpcServer.Run())
 	}()
 	log.Printf("initialize grpc server in address: %s", cfg.GetGrpc().GetAddress())
-	auth.RegisterAuthServiceServer(grpcServer.GetServer(), auth.UnimplementedAuthServiceServer{})
+
+	accountHandler := controller.NewAuthHandler()
+	auth.RegisterAuthServiceServer(grpcServer.GetServer(), accountHandler)
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
