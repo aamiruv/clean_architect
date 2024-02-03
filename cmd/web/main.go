@@ -9,10 +9,9 @@ import (
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
 	weblog "github.com/AmirMirzayi/clean_architecture/pkg/logger/web"
-	"github.com/AmirMirzayi/clean_architecture/pkg/web"
-	"google.golang.org/grpc"
+	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpc"
+	"github.com/AmirMirzayi/clean_architecture/pkg/server/web"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -69,14 +68,12 @@ func main() {
 	}()
 	log.Printf("initialize web server in address: %s", cfg.GetWeb().GetAddress())
 
-	lis, err := net.Listen("tcp", "localhost:8070")
-	if err != nil {
-		panic(err)
-	}
-	grpcServer := grpc.NewServer()
-
-	auth.RegisterAuthServiceServer(grpcServer, &tmp{})
-	go grpcServer.Serve(lis)
+	grpcServer := grpc.NewServer(cfg.GetGrpc().GetAddress())
+	go func() {
+		log.Panic(grpcServer.Run())
+	}()
+	log.Printf("initialize grpc server in address: %s", cfg.GetGrpc().GetAddress())
+	auth.RegisterAuthServiceServer(grpcServer.GetServer(), &tmp{})
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
@@ -84,5 +81,5 @@ func main() {
 	if err := webServer.GracefulShutdown(5 * time.Second); err != nil {
 		log.Println(err)
 	}
-	grpcServer.GracefulStop()
+	grpcServer.GracefulShutdown(5 * time.Second)
 }
