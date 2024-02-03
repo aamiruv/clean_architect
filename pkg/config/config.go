@@ -17,19 +17,19 @@ func LoadConfig(fileAddress string) appConfig {
 	if err != nil {
 		panic(err)
 	}
-	type tmpConfig struct {
+	tmpCfg := struct {
 		DB        db     `json:"db"`
 		Web       web    `json:"web"`
 		Grpc      grpc   `json:"grpc"`
 		LoggerURL string `json:"loggerURL"`
-	}
-	tmpCfg := tmpConfig{}
+	}{}
 	if err = json.Unmarshal(bytes, &tmpCfg); err != nil {
 		panic(err)
 	}
 	return appConfig{
 		db:        tmpCfg.DB,
 		web:       tmpCfg.Web,
+		grpc:      tmpCfg.Grpc,
 		loggerURL: tmpCfg.LoggerURL,
 	}
 }
