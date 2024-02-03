@@ -3,13 +3,16 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/AmirMirzayi/clean_architecture/app/router"
+	"github.com/AmirMirzayi/clean_architecture/api/proto/auth"
+	"github.com/AmirMirzayi/clean_architecture/api/router"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
 	weblog "github.com/AmirMirzayi/clean_architecture/pkg/logger/web"
 	"github.com/AmirMirzayi/clean_architecture/pkg/web"
+	"google.golang.org/grpc"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,6 +24,14 @@ var configPath string
 func init() {
 	flag.StringVar(&configPath, "config", "config.json", "config file path, eg: -config=/path/to/file.json")
 	flag.Parse()
+}
+
+type tmp struct {
+	auth.UnimplementedAuthServiceServer
+}
+
+func (t tmp) Register(context.Context, *auth.RegisterRequest) (*auth.RegisterResponse, error) {
+	return &auth.RegisterResponse{UserId: "amir"}, nil
 }
 
 func main() {
@@ -58,10 +69,20 @@ func main() {
 	}()
 	log.Printf("initialize web server in address: %s", cfg.GetWeb().GetAddress())
 
+	lis, err := net.Listen("tcp", "localhost:8070")
+	if err != nil {
+		panic(err)
+	}
+	grpcServer := grpc.NewServer()
+
+	auth.RegisterAuthServiceServer(grpcServer, &tmp{})
+	go grpcServer.Serve(lis)
+
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
 	<-sigint
 	if err := webServer.GracefulShutdown(5 * time.Second); err != nil {
 		log.Println(err)
 	}
+	grpcServer.GracefulStop()
 }
