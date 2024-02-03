@@ -11,6 +11,7 @@ import (
 	weblog "github.com/AmirMirzayi/clean_architecture/pkg/logger/web"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpc"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/web"
+	"golang.org/x/sync/errgroup"
 	"log"
 	"os"
 	"os/signal"
@@ -18,22 +19,13 @@ import (
 	"time"
 )
 
-var configPath string
-
-func init() {
-	flag.StringVar(&configPath, "config", "config.json", "config file path, eg: -config=/path/to/file.json")
-	flag.Parse()
-}
-
-type tmp struct {
-	auth.UnimplementedAuthServiceServer
-}
-
-func (t tmp) Register(context.Context, *auth.RegisterRequest) (*auth.RegisterResponse, error) {
-	return &auth.RegisterResponse{UserId: "amir"}, nil
-}
+const ShutdownTimeout = 5 * time.Second
 
 func main() {
+	var configPath string
+	flag.StringVar(&configPath, "config", "config.json", "config file path, eg: -config=/path/to/file.json")
+	flag.Parse()
+
 	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -73,13 +65,21 @@ func main() {
 		log.Panic(grpcServer.Run())
 	}()
 	log.Printf("initialize grpc server in address: %s", cfg.GetGrpc().GetAddress())
-	auth.RegisterAuthServiceServer(grpcServer.GetServer(), &tmp{})
+	auth.RegisterAuthServiceServer(grpcServer.GetServer(), auth.UnimplementedAuthServiceServer{})
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
 	<-sigint
-	if err := webServer.GracefulShutdown(5 * time.Second); err != nil {
-		log.Println(err)
+
+	errGp := errgroup.Group{}
+	errGp.Go(func() error {
+		return webServer.GracefulShutdown(ShutdownTimeout)
+	})
+	errGp.Go(func() error {
+		grpcServer.GracefulShutdown(ShutdownTimeout)
+		return nil
+	})
+	if err := errGp.Wait(); err != nil {
+		log.Fatal(err)
 	}
-	grpcServer.GracefulShutdown(5 * time.Second)
 }
