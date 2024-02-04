@@ -16,13 +16,13 @@ const (
 )
 
 type Logger struct {
-	LoggerType LoggerType
+	loggerType LoggerType
 	directory  string
 }
 
 func NewLogger(loggerType LoggerType, directory string) Logger {
 	return Logger{
-		LoggerType: loggerType,
+		loggerType: loggerType,
 		directory:  directory,
 	}
 }
@@ -35,7 +35,7 @@ func (l Logger) Write(p []byte) (int, error) {
 
 	y, m, d := time.Now().Date()
 
-	switch l.LoggerType {
+	switch l.loggerType {
 	case LogHourly:
 		h, _, _ := time.Now().Clock()
 		file, err = openLogFile(fmt.Sprintf("%s/%d/%d/%d/%d.log", l.directory, y, m, d, h))
