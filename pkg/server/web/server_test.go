@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ func TestRunServer(t *testing.T) {
 
 	srv := NewServer(mockedHttpServerAddress, nil, 100000, timeout, timeout, timeout, timeout)
 	go func() {
-		if err := srv.Run(); err != nil {
+		if err := srv.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			t.Fail()
 		}
 	}()
@@ -24,16 +25,11 @@ func TestRunServer(t *testing.T) {
 	})
 
 	res, err := http.Get(fullTestingRoute)
-	if err != nil {
-		t.Fail()
-	}
-	if res.StatusCode != http.StatusOK {
+	if err != nil || res.StatusCode != http.StatusOK {
 		t.Fail()
 	}
 
-	time.Sleep(timeout)
 	if err := srv.GracefulShutdown(10 * time.Second); err != nil {
-		t.Error(err)
+		t.Fail()
 	}
-
 }
