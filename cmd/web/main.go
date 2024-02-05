@@ -5,14 +5,17 @@ import (
 	"flag"
 	"github.com/AmirMirzayi/clean_architecture/api/proto/auth"
 	"github.com/AmirMirzayi/clean_architecture/api/router"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/adapter/controller"
+	authController "github.com/AmirMirzayi/clean_architecture/internal/auth/adapter/controller"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
 	weblog "github.com/AmirMirzayi/clean_architecture/pkg/logger/web"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpc"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/web"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
+	grpc2 "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
 	"os/signal"
@@ -27,7 +30,7 @@ func main() {
 	flag.StringVar(&configPath, "config", "config.json", "config file path, eg: -config=/path/to/file.json")
 	flag.Parse()
 
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	cfg := config.LoadConfig(configPath)
@@ -67,8 +70,18 @@ func main() {
 	}()
 	log.Printf("initialize grpc server in address: %s", cfg.GetGrpc().GetAddress())
 
-	accountHandler := controller.NewAuthHandler()
+	accountHandler := authController.NewAuthHandler()
 	auth.RegisterAuthServiceServer(grpcServer.GetServer(), accountHandler)
+
+	mux := runtime.NewServeMux()
+	webServer.GetMuxHandler().Handle("/", mux)
+
+	dialOptions := []grpc2.DialOption{
+		grpc2.WithTransportCredentials(insecure.NewCredentials()),
+	}
+	if err := authController.RegisterGateway(ctx, mux, cfg.GetGrpc().GetAddress(), dialOptions...); err != nil {
+		log.Panic(err)
+	}
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
