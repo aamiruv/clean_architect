@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"github.com/AmirMirzayi/clean_architecture/api/proto/auth"
 	"github.com/AmirMirzayi/clean_architecture/api/router"
@@ -17,6 +18,7 @@ import (
 	grpc2 "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -60,7 +62,9 @@ func main() {
 	)
 	router.RegisterHttpRoutes(webServer.GetMuxHandler())
 	go func() {
-		log.Panic(webServer.Run())
+		if err := webServer.Run(); !errors.Is(err, http.ErrServerClosed) {
+			log.Panic(err)
+		}
 	}()
 	log.Printf("initialize web server in address: %s", cfg.GetWeb().GetAddress())
 
