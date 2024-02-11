@@ -2,17 +2,22 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"flag"
 	"github.com/AmirMirzayi/clean_architecture/api/proto/auth"
 	"github.com/AmirMirzayi/clean_architecture/api/router"
 	authController "github.com/AmirMirzayi/clean_architecture/internal/auth/adapter/controller"
+	"github.com/AmirMirzayi/clean_architecture/internal/auth/adapter/repository"
+	"github.com/AmirMirzayi/clean_architecture/internal/auth/service"
+	"github.com/AmirMirzayi/clean_architecture/internal/auth/usecase"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
 	weblog "github.com/AmirMirzayi/clean_architecture/pkg/logger/web"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpc"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/web"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
 	grpc2 "google.golang.org/grpc"
@@ -36,6 +41,14 @@ func main() {
 	defer cancel()
 
 	cfg := config.LoadConfig(configPath)
+
+	db, err := sql.Open("mysql", cfg.GetDB().GetConnectionString())
+	if err != nil {
+		panic(err)
+	}
+	if err = db.Ping(); err != nil {
+		panic(err)
+	}
 
 	fileLogger := file.NewLogger(file.LogHourly, "log")
 	theWebLog := weblog.NewLogger(cfg.GetLoggerURL())
@@ -74,7 +87,10 @@ func main() {
 	}()
 	log.Printf("initialize grpc server in address: %s", cfg.GetGrpc().GetAddress())
 
-	accountHandler := authController.NewAuthHandler()
+	authRepository := repository.NewAuthRepository(db)
+	authService := service.NewAuthService(authRepository)
+	authUseCase := usecase.NewAuthUseCase(authService)
+	accountHandler := authController.NewAuthHandler(authUseCase)
 	auth.RegisterAuthServiceServer(grpcServer.GetServer(), accountHandler)
 
 	mux := runtime.NewServeMux()
@@ -98,6 +114,9 @@ func main() {
 	errGp.Go(func() error {
 		grpcServer.GracefulShutdown(ShutdownTimeout)
 		return nil
+	})
+	errGp.Go(func() error {
+		return db.Close()
 	})
 	if err := errGp.Wait(); err != nil {
 		log.Fatal(err)

@@ -3,6 +3,7 @@ module github.com/AmirMirzayi/clean_architecture
 go 1.21.5
 
 require (
+	github.com/go-sql-driver/mysql v1.7.1
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1
 	golang.org/x/sync v0.5.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe

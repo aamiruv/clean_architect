@@ -14,12 +14,16 @@ func RegisterGateway(ctx context.Context, mux *runtime.ServeMux, grpcAddress str
 	return nil
 }
 
-type AuthHandler struct {
-	auth.UnimplementedAuthServiceServer
+type AuthUseCase interface {
 }
 
-func NewAuthHandler() AuthHandler {
-	return AuthHandler{}
+type AuthHandler struct {
+	auth.UnimplementedAuthServiceServer
+	useCase AuthUseCase
+}
+
+func NewAuthHandler(authUseCase AuthUseCase) AuthHandler {
+	return AuthHandler{useCase: authUseCase}
 }
 
 func (h AuthHandler) Register(ctx context.Context, req *auth.RegisterRequest) (*auth.RegisterResponse, error) {
