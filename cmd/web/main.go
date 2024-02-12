@@ -5,12 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"flag"
-	"github.com/AmirMirzayi/clean_architecture/api/proto/auth"
 	"github.com/AmirMirzayi/clean_architecture/api/router"
-	authController "github.com/AmirMirzayi/clean_architecture/internal/auth/adapter/controller"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/adapter/repository"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/service"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/usecase"
+	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
@@ -87,11 +83,7 @@ func main() {
 	}()
 	log.Printf("initialize grpc server in address: %s", cfg.GetGrpc().GetAddress())
 
-	authRepository := repository.NewAuthRepository(db)
-	authService := service.NewAuthService(authRepository)
-	authUseCase := usecase.NewAuthUseCase(authService)
-	accountHandler := authController.NewAuthHandler(authUseCase)
-	auth.RegisterAuthServiceServer(grpcServer.GetServer(), accountHandler)
+	auth.InitializeAuthServer(grpcServer.GetServer(), db)
 
 	mux := runtime.NewServeMux()
 	webServer.GetMuxHandler().Handle("/", mux)
@@ -99,7 +91,7 @@ func main() {
 	dialOptions := []grpc2.DialOption{
 		grpc2.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	if err := authController.RegisterGateway(ctx, mux, cfg.GetGrpc().GetAddress(), dialOptions...); err != nil {
+	if err := auth.RegisterGateway(ctx, mux, cfg.GetGrpc().GetAddress(), dialOptions...); err != nil {
 		log.Panic(err)
 	}
 

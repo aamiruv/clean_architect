@@ -2,19 +2,13 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"github.com/AmirMirzayi/clean_architecture/api/proto/auth"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"google.golang.org/grpc"
+	"github.com/AmirMirzayi/clean_architecture/internal/auth/domain"
 )
 
-func RegisterGateway(ctx context.Context, mux *runtime.ServeMux, grpcAddress string, options ...grpc.DialOption) error {
-	if err := auth.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, grpcAddress, options); err != nil {
-		return err
-	}
-	return nil
-}
-
 type AuthUseCase interface {
+	Register(domain.Auth) error
 }
 
 type AuthHandler struct {
@@ -27,5 +21,9 @@ func NewAuthHandler(authUseCase AuthUseCase) AuthHandler {
 }
 
 func (h AuthHandler) Register(ctx context.Context, req *auth.RegisterRequest) (*auth.RegisterResponse, error) {
+	d := domain.Auth{UserName: req.GetUserName(), Password: req.GetPassword()}
+	if h.useCase.Register(d) != nil {
+		return nil, errors.New("something went wrong")
+	}
 	return &auth.RegisterResponse{UserId: "user" + req.GetUserName() + req.GetPassword()}, nil
 }
