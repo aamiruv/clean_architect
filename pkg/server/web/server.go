@@ -13,15 +13,7 @@ type server struct {
 	mux        *http.ServeMux
 }
 
-func NewServer(
-	address string,
-	logger *log.Logger,
-	maxHeaderBytes int,
-	idleTimeout,
-	readTimeout,
-	writeTimeout,
-	readHeaderTimeout time.Duration,
-) server {
+func NewServer(opts ...optionServerFunc) server {
 	mux := http.NewServeMux()
 	srv := &http.Server{
 		Handler:           mux,
@@ -33,8 +25,40 @@ func NewServer(
 		WriteTimeout:      writeTimeout,
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
+	httpServer := server{httpServer: srv, mux: mux}
+	for _, opt := range opts {
+		opt(&httpServer)
+	}
+	return httpServer
+}
 
-	return server{httpServer: srv, mux: mux}
+type optionServerFunc func(*server)
+
+func WithAddress(address string) optionServerFunc {
+	return func(s *server) {
+		s.httpServer.Addr = address
+	}
+}
+
+func WithLogger(logger *log.Logger) optionServerFunc {
+	return func(s *server) {
+		s.httpServer.ErrorLog = logger
+	}
+}
+
+func WithMaxHeaderBytes(bytes int) optionServerFunc {
+	return func(s *server) {
+		s.httpServer.MaxHeaderBytes = bytes
+	}
+}
+
+func WithTimeout(idle, read, write, readHeader time.Duration) optionServerFunc {
+	return func(s *server) {
+		s.httpServer.IdleTimeout = idle
+		s.httpServer.ReadTimeout = read
+		s.httpServer.WriteTimeout = write
+		s.httpServer.ReadHeaderTimeout = readHeader
+	}
 }
 
 func (s *server) GetMuxHandler() *http.ServeMux {

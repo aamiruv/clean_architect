@@ -61,13 +61,14 @@ func main() {
 	)
 
 	webServer := web.NewServer(
-		cfg.GetWeb().GetAddress(),
-		webLogger,
-		1<<11,
-		cfg.GetWeb().GetIdleTimeout(),
-		cfg.GetWeb().GetReadTimeOut(),
-		cfg.GetWeb().GetWriteTimeout(),
-		cfg.GetWeb().GetReadHeaderTimeout(),
+		web.WithAddress(cfg.GetWeb().GetAddress()),
+		web.WithLogger(webLogger),
+		web.WithTimeout(
+			cfg.GetWeb().GetIdleTimeout(),
+			cfg.GetWeb().GetReadTimeOut(),
+			cfg.GetWeb().GetWriteTimeout(),
+			cfg.GetWeb().GetReadHeaderTimeout(),
+		),
 	)
 	router.RegisterHttpRoutes(webServer.GetMuxHandler())
 	go func() {

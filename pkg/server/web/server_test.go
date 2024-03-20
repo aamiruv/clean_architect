@@ -15,7 +15,7 @@ func TestRunServer(t *testing.T) {
 		fullTestingRoute        = "http://" + mockedHttpServerAddress + testingRoute
 	)
 
-	srv := NewServer(mockedHttpServerAddress, nil, 100000, timeout, timeout, timeout, timeout)
+	srv := NewServer(WithAddress(mockedHttpServerAddress))
 
 	t.Run("test run http server", func(t *testing.T) {
 		go func() {
