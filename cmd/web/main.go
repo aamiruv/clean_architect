@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/AmirMirzayi/clean_architecture/api/router"
 	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
-	"github.com/AmirMirzayi/clean_architecture/pkg/logger"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
 	weblog "github.com/AmirMirzayi/clean_architecture/pkg/logger/web"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpc"
@@ -18,7 +18,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	grpc2 "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -53,11 +55,10 @@ func run() error {
 
 	fileLogger := file.NewLogger(file.LogHourly, "log")
 	theWebLog := weblog.NewLogger(cfg.LoggerURL())
-	// log on file & http url same time
-	complexLogger := logger.NewComplexLogger(fileLogger, theWebLog)
-
+	// log on console & file & http url at same time
+	logWriter := io.MultiWriter(os.Stdout, fileLogger, theWebLog)
 	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC)
-	log.SetOutput(complexLogger)
+	log.SetOutput(logWriter)
 
 	webLoggerFile := file.NewLogger(file.LogHourly, "weblog")
 	webLogger := log.New(
@@ -81,21 +82,20 @@ func run() error {
 	defer close(errCh)
 
 	go func() {
-		if err = webServer.Run(); err != nil {
+		if err = webServer.Run(); !errors.Is(err, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("failed to initialize web server: %w", err)
 		}
 	}()
 	log.Printf("web server initialized in address: %s", cfg.Web().Address())
 
 	grpcServer := grpc.NewServer(cfg.Grpc().Address())
+	auth.InitializeAuthServer(grpcServer.Server(), db)
 	go func() {
 		if err = grpcServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to initialize grpc server: %w", err)
 		}
 	}()
 	log.Printf("grpc server initialized in address: %s", cfg.Grpc().Address())
-
-	auth.InitializeAuthServer(grpcServer.Server(), db)
 
 	mux := runtime.NewServeMux()
 	webServer.MuxHandler().Handle("/", mux)
