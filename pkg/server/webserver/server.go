@@ -34,6 +34,12 @@ func New(opts ...optionServerFunc) server {
 
 type optionServerFunc func(*server)
 
+func WithMuxHandler(mux *http.ServeMux) optionServerFunc {
+	return func(s *server) {
+		s.httpServer.Handler = mux
+	}
+}
+
 func WithAddress(address string) optionServerFunc {
 	return func(s *server) {
 		s.httpServer.Addr = address
@@ -59,10 +65,6 @@ func WithTimeout(idle, read, write, readHeader time.Duration) optionServerFunc {
 		s.httpServer.WriteTimeout = write
 		s.httpServer.ReadHeaderTimeout = readHeader
 	}
-}
-
-func (s *server) MuxHandler() *http.ServeMux {
-	return s.mux
 }
 
 func (s *server) Run() error {

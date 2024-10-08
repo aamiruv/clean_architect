@@ -68,7 +68,13 @@ func run() error {
 		log.Ltime|log.Lshortfile|log.LUTC|log.Lmsgprefix,
 	)
 
+	gwMux := runtime.NewServeMux()
+
+	muxHandler := router.New()
+	muxHandler.Handle("/", gwMux)
+
 	webServer := webserver.New(
+		webserver.WithMuxHandler(muxHandler),
 		webserver.WithAddress(cfg.Web().Address()),
 		webserver.WithLogger(webLogger),
 		webserver.WithTimeout(
@@ -78,7 +84,6 @@ func run() error {
 			cfg.Web().ReadHeaderTimeout(),
 		),
 	)
-	router.RegisterHttpRoutes(webServer.MuxHandler())
 
 	errCh := make(chan error)
 	defer close(errCh)
@@ -99,13 +104,10 @@ func run() error {
 	}()
 	log.Printf("grpc server initialized in address: %s", cfg.Grpc().Address())
 
-	mux := runtime.NewServeMux()
-	webServer.MuxHandler().Handle("/", mux)
-
 	dialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	if err = auth.RegisterGateway(ctx, mux, cfg.Grpc().Address(), dialOptions...); err != nil {
+	if err = auth.RegisterGateway(ctx, gwMux, cfg.Grpc().Address(), dialOptions...); err != nil {
 		return err
 	}
 

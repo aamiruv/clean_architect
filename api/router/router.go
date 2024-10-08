@@ -2,10 +2,13 @@ package router
 
 import "net/http"
 
-func RegisterHttpRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/ping", Ping)
+func New() *http.ServeMux {
+	handler := http.NewServeMux()
+	handler.HandleFunc("/ping", ping)
+
+	return handler
 }
 
-func Ping(w http.ResponseWriter, r *http.Request) {
+func ping(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("pong"))
 }
