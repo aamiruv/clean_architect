@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"flag"
+	"fmt"
 	"github.com/AmirMirzayi/clean_architecture/api/router"
 	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
@@ -19,7 +19,6 @@ import (
 	grpc2 "google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -77,18 +76,24 @@ func run() error {
 		),
 	)
 	router.RegisterHttpRoutes(webServer.MuxHandler())
+
+	errCh := make(chan error)
+	defer close(errCh)
+
 	go func() {
-		if err = webServer.Run(); !errors.Is(err, http.ErrServerClosed) {
-			log.Panic(err)
+		if err = webServer.Run(); err != nil {
+			errCh <- fmt.Errorf("failed to initialize web server: %w", err)
 		}
 	}()
-	log.Printf("initialize web server in address: %s", cfg.Web().Address())
+	log.Printf("web server initialized in address: %s", cfg.Web().Address())
 
 	grpcServer := grpc.NewServer(cfg.Grpc().Address())
 	go func() {
-		log.Panic(grpcServer.Run())
+		if err = grpcServer.Run(); err != nil {
+			errCh <- fmt.Errorf("failed to initialize grpc server: %w", err)
+		}
 	}()
-	log.Printf("initialize grpc server in address: %s", cfg.Grpc().Address())
+	log.Printf("grpc server initialized in address: %s", cfg.Grpc().Address())
 
 	auth.InitializeAuthServer(grpcServer.Server(), db)
 
@@ -104,21 +109,28 @@ func run() error {
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
-	<-sigint
 
-	errGp := errgroup.Group{}
-	errGp.Go(func() error {
-		return webServer.GracefulShutdown(ShutdownTimeout)
-	})
-	errGp.Go(func() error {
-		grpcServer.GracefulShutdown(ShutdownTimeout)
-		return nil
-	})
-	errGp.Go(func() error {
-		return db.Close()
-	})
-	if err = errGp.Wait(); err != nil {
+	select {
+	case err = <-errCh:
 		return err
+
+	case sig := <-sigint:
+		log.Printf("received signal %s", sig)
+
+		errGp := errgroup.Group{}
+		errGp.Go(func() error {
+			return webServer.GracefulShutdown(ShutdownTimeout)
+		})
+		errGp.Go(func() error {
+			grpcServer.GracefulShutdown(ShutdownTimeout)
+			return nil
+		})
+		errGp.Go(func() error {
+			return db.Close()
+		})
+		if err = errGp.Wait(); err != nil {
+			return err
+		}
 	}
 
 	return nil
