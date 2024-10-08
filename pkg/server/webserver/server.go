@@ -1,4 +1,4 @@
-package web
+package webserver
 
 import (
 	"context"
@@ -13,7 +13,7 @@ type server struct {
 	mux        *http.ServeMux
 }
 
-func NewServer(opts ...optionServerFunc) server {
+func New(opts ...optionServerFunc) server {
 	mux := http.NewServeMux()
 	srv := &http.Server{
 		Handler:           mux,

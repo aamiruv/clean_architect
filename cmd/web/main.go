@@ -6,18 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/AmirMirzayi/clean_architecture/api/router"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth"
-	"github.com/AmirMirzayi/clean_architecture/pkg/config"
-	"github.com/AmirMirzayi/clean_architecture/pkg/logger/file"
-	weblog "github.com/AmirMirzayi/clean_architecture/pkg/logger/web"
-	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpc"
-	"github.com/AmirMirzayi/clean_architecture/pkg/server/web"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"golang.org/x/sync/errgroup"
-	grpc2 "google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"log"
 	"net/http"
@@ -25,6 +13,20 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/AmirMirzayi/clean_architecture/api/router"
+	"github.com/AmirMirzayi/clean_architecture/internal/auth"
+	"github.com/AmirMirzayi/clean_architecture/pkg/config"
+	"github.com/AmirMirzayi/clean_architecture/pkg/logger/filelog"
+	"github.com/AmirMirzayi/clean_architecture/pkg/logger/weblog"
+	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpcserver"
+	"github.com/AmirMirzayi/clean_architecture/pkg/server/webserver"
 )
 
 const ShutdownTimeout = 5 * time.Second
@@ -37,7 +39,7 @@ func main() {
 
 func run() error {
 	var configPath string
-	flag.StringVar(&configPath, "config", "config.json", "config file path, eg: -config=/path/to/file.json")
+	flag.StringVar(&configPath, "config", "config.json", "config filelog path, eg: -config=/path/to/filelog.json")
 	flag.Parse()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,23 +55,23 @@ func run() error {
 		return err
 	}
 
-	fileLogger := file.NewLogger(file.LogHourly, "log")
-	theWebLog := weblog.NewLogger(cfg.LoggerURL())
+	fileLogger := filelog.New(filelog.LogHourly, "log")
+	theWebLog := weblog.New(cfg.LoggerURL())
 	// log on console & file & http url at same time
 	logWriter := io.MultiWriter(os.Stdout, fileLogger, theWebLog)
 	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC)
 	log.SetOutput(logWriter)
 
-	webLoggerFile := file.NewLogger(file.LogHourly, "weblog")
+	webLoggerFile := filelog.New(filelog.LogHourly, "weblog")
 	webLogger := log.New(
 		webLoggerFile, "",
 		log.Ltime|log.Lshortfile|log.LUTC|log.Lmsgprefix,
 	)
 
-	webServer := web.NewServer(
-		web.WithAddress(cfg.Web().Address()),
-		web.WithLogger(webLogger),
-		web.WithTimeout(
+	webServer := webserver.New(
+		webserver.WithAddress(cfg.Web().Address()),
+		webserver.WithLogger(webLogger),
+		webserver.WithTimeout(
 			cfg.Web().IdleTimeout(),
 			cfg.Web().ReadTimeOut(),
 			cfg.Web().WriteTimeout(),
@@ -88,7 +90,7 @@ func run() error {
 	}()
 	log.Printf("web server initialized in address: %s", cfg.Web().Address())
 
-	grpcServer := grpc.NewServer(cfg.Grpc().Address())
+	grpcServer := grpcserver.New(cfg.Grpc().Address())
 	auth.InitializeAuthServer(grpcServer.Server(), db)
 	go func() {
 		if err = grpcServer.Run(); err != nil {
@@ -100,8 +102,8 @@ func run() error {
 	mux := runtime.NewServeMux()
 	webServer.MuxHandler().Handle("/", mux)
 
-	dialOptions := []grpc2.DialOption{
-		grpc2.WithTransportCredentials(insecure.NewCredentials()),
+	dialOptions := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	if err = auth.RegisterGateway(ctx, mux, cfg.Grpc().Address(), dialOptions...); err != nil {
 		return err

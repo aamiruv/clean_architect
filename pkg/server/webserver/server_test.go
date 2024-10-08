@@ -1,4 +1,4 @@
-package web
+package webserver
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ func TestRunServer(t *testing.T) {
 		fullTestingRoute        = "http://" + mockedHttpServerAddress + testingRoute
 	)
 
-	srv := NewServer(WithAddress(mockedHttpServerAddress))
+	srv := New(WithAddress(mockedHttpServerAddress))
 
 	t.Run("test run http server", func(t *testing.T) {
 		go func() {

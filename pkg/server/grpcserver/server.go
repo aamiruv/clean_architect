@@ -1,9 +1,10 @@
-package grpc
+package grpcserver
 
 import (
-	"google.golang.org/grpc"
 	"net"
 	"time"
+
+	"google.golang.org/grpc"
 )
 
 type server struct {
@@ -11,7 +12,7 @@ type server struct {
 	bindingAddress string
 }
 
-func NewServer(bindingAddress string, options ...grpc.ServerOption) server {
+func New(bindingAddress string, options ...grpc.ServerOption) server {
 	s := grpc.NewServer(options...)
 	return server{grpcServer: s, bindingAddress: bindingAddress}
 }

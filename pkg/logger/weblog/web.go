@@ -1,19 +1,19 @@
-package web
+package weblog
 
 import (
 	"bytes"
 	"net/http"
 )
 
-type Logger struct {
+type logger struct {
 	url string
 }
 
-func NewLogger(url string) Logger {
-	return Logger{url: url}
+func New(url string) logger {
+	return logger{url: url}
 }
 
-func (l Logger) Write(p []byte) (int, error) {
+func (l logger) Write(p []byte) (int, error) {
 	// we should ignore error to avoid panic
 	/*res, err := http.Post(l.url, "application/json", bytes.NewBuffer(p))
 	return res.StatusCode, err*/

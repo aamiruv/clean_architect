@@ -1,4 +1,4 @@
-package file
+package filelog
 
 import (
 	"fmt"
@@ -7,20 +7,20 @@ import (
 	"time"
 )
 
-type LoggerType uint8
+type loggerType uint8
 
 const (
-	LogHourly LoggerType = iota + 1
+	LogHourly loggerType = iota + 1
 	LogDaily
 	LogMono
 )
 
 type Logger struct {
-	loggerType LoggerType
+	loggerType loggerType
 	directory  string
 }
 
-func NewLogger(loggerType LoggerType, directory string) Logger {
+func New(loggerType loggerType, directory string) Logger {
 	return Logger{
 		loggerType: loggerType,
 		directory:  directory,

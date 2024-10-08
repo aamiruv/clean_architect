@@ -1,4 +1,4 @@
-package grpc
+package grpcserver
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestRunGrpcServer(t *testing.T) {
-	server := NewServer("localhost:12345")
+	server := New("localhost:12345")
 	go func() {
 		if err := server.Run(); err != nil {
 			t.Fail()
