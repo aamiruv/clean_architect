@@ -18,7 +18,6 @@ func New(opts ...optionServerFunc) server {
 	srv := &http.Server{
 		Handler:           mux,
 		Addr:              address,
-		ErrorLog:          logger,
 		MaxHeaderBytes:    maxHeaderBytes,
 		IdleTimeout:       idleTimeout,
 		ReadTimeout:       readTimeout,

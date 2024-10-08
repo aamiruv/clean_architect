@@ -1,7 +1,6 @@
 package webserver
 
 import (
-	"log"
 	"time"
 )
 
@@ -13,5 +12,3 @@ const (
 	writeTimeout      = 15 * time.Second
 	readHeaderTimeout = 1 * time.Second
 )
-
-var logger = log.Default()
