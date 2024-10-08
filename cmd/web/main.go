@@ -38,7 +38,7 @@ func main() {
 
 	cfg := config.LoadConfig(configPath)
 
-	db, err := sql.Open("mysql", cfg.GetDB().GetConnectionString())
+	db, err := sql.Open("mysql", cfg.DB().ConnectionString())
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +47,7 @@ func main() {
 	}
 
 	fileLogger := file.NewLogger(file.LogHourly, "log")
-	theWebLog := weblog.NewLogger(cfg.GetLoggerURL())
+	theWebLog := weblog.NewLogger(cfg.LoggerURL())
 	// log on file & http url same time
 	complexLogger := logger.NewComplexLogger(fileLogger, theWebLog)
 
@@ -61,38 +61,38 @@ func main() {
 	)
 
 	webServer := web.NewServer(
-		web.WithAddress(cfg.GetWeb().GetAddress()),
+		web.WithAddress(cfg.Web().Address()),
 		web.WithLogger(webLogger),
 		web.WithTimeout(
-			cfg.GetWeb().GetIdleTimeout(),
-			cfg.GetWeb().GetReadTimeOut(),
-			cfg.GetWeb().GetWriteTimeout(),
-			cfg.GetWeb().GetReadHeaderTimeout(),
+			cfg.Web().IdleTimeout(),
+			cfg.Web().ReadTimeOut(),
+			cfg.Web().WriteTimeout(),
+			cfg.Web().ReadHeaderTimeout(),
 		),
 	)
-	router.RegisterHttpRoutes(webServer.GetMuxHandler())
+	router.RegisterHttpRoutes(webServer.MuxHandler())
 	go func() {
-		if err := webServer.Run(); !errors.Is(err, http.ErrServerClosed) {
+		if err = webServer.Run(); !errors.Is(err, http.ErrServerClosed) {
 			log.Panic(err)
 		}
 	}()
-	log.Printf("initialize web server in address: %s", cfg.GetWeb().GetAddress())
+	log.Printf("initialize web server in address: %s", cfg.Web().Address())
 
-	grpcServer := grpc.NewServer(cfg.GetGrpc().GetAddress())
+	grpcServer := grpc.NewServer(cfg.Grpc().Address())
 	go func() {
 		log.Panic(grpcServer.Run())
 	}()
-	log.Printf("initialize grpc server in address: %s", cfg.GetGrpc().GetAddress())
+	log.Printf("initialize grpc server in address: %s", cfg.Grpc().Address())
 
-	auth.InitializeAuthServer(grpcServer.GetServer(), db)
+	auth.InitializeAuthServer(grpcServer.Server(), db)
 
 	mux := runtime.NewServeMux()
-	webServer.GetMuxHandler().Handle("/", mux)
+	webServer.MuxHandler().Handle("/", mux)
 
 	dialOptions := []grpc2.DialOption{
 		grpc2.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	if err := auth.RegisterGateway(ctx, mux, cfg.GetGrpc().GetAddress(), dialOptions...); err != nil {
+	if err = auth.RegisterGateway(ctx, mux, cfg.Grpc().Address(), dialOptions...); err != nil {
 		log.Panic(err)
 	}
 

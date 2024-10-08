@@ -23,7 +23,7 @@ func TestRunServer(t *testing.T) {
 				t.Fail()
 			}
 		}()
-		srv.GetMuxHandler().HandleFunc(testingRoute, func(w http.ResponseWriter, r *http.Request) {
+		srv.MuxHandler().HandleFunc(testingRoute, func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
 	})

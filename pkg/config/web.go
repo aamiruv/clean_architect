@@ -14,22 +14,22 @@ type web struct {
 	ReadHeaderTimeoutInSec uint   `json:"readHeaderTimeoutInSec"`
 }
 
-func (w web) GetAddress() string {
+func (w web) Address() string {
 	return fmt.Sprintf("%s:%d", w.BindingIpAddress, w.Port)
 }
 
-func (w web) GetReadTimeOut() time.Duration {
+func (w web) ReadTimeOut() time.Duration {
 	return time.Duration(w.ReadTimeOutInSec) * time.Second
 }
 
-func (w web) GetIdleTimeout() time.Duration {
+func (w web) IdleTimeout() time.Duration {
 	return time.Duration(w.IdleTimeoutInSec) * time.Second
 }
 
-func (w web) GetWriteTimeout() time.Duration {
+func (w web) WriteTimeout() time.Duration {
 	return time.Duration(w.WriteTimeoutInSec) * time.Second
 }
 
-func (w web) GetReadHeaderTimeout() time.Duration {
+func (w web) ReadHeaderTimeout() time.Duration {
 	return time.Duration(w.ReadHeaderTimeoutInSec) * time.Second
 }

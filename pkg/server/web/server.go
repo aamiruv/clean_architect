@@ -61,7 +61,7 @@ func WithTimeout(idle, read, write, readHeader time.Duration) optionServerFunc {
 	}
 }
 
-func (s *server) GetMuxHandler() *http.ServeMux {
+func (s *server) MuxHandler() *http.ServeMux {
 	return s.mux
 }
 

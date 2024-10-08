@@ -10,7 +10,7 @@ type db struct {
 	DBName   string `json:"dbName"`
 }
 
-func (db db) GetConnectionString() string {
+func (db db) ConnectionString() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
 		db.UserName,
 		db.Password,

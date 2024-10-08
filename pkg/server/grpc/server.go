@@ -32,6 +32,6 @@ func (s server) GracefulShutdown(deadline time.Duration) {
 	}()
 }
 
-func (s server) GetServer() *grpc.Server {
+func (s server) Server() *grpc.Server {
 	return s.grpcServer
 }

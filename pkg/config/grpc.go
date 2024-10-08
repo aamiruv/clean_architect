@@ -7,6 +7,6 @@ type grpc struct {
 	Port             uint   `json:"port"`
 }
 
-func (g grpc) GetAddress() string {
+func (g grpc) Address() string {
 	return fmt.Sprintf("%s:%d", g.BindingIpAddress, g.Port)
 }

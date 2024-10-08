@@ -34,18 +34,18 @@ func LoadConfig(fileAddress string) appConfig {
 	}
 }
 
-func (app appConfig) GetDB() db {
+func (app appConfig) DB() db {
 	return app.db
 }
 
-func (app appConfig) GetWeb() web {
+func (app appConfig) Web() web {
 	return app.web
 }
 
-func (app appConfig) GetGrpc() grpc {
+func (app appConfig) Grpc() grpc {
 	return app.grpc
 }
 
-func (app appConfig) GetLoggerURL() string {
+func (app appConfig) LoggerURL() string {
 	return app.loggerURL
 }
