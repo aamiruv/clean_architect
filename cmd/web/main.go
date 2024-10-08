@@ -29,6 +29,12 @@ import (
 const ShutdownTimeout = 5 * time.Second
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	var configPath string
 	flag.StringVar(&configPath, "config", "config.json", "config file path, eg: -config=/path/to/file.json")
 	flag.Parse()
@@ -40,10 +46,10 @@ func main() {
 
 	db, err := sql.Open("mysql", cfg.DB().ConnectionString())
 	if err != nil {
-		panic(err)
+		return err
 	}
 	if err = db.Ping(); err != nil {
-		panic(err)
+		return err
 	}
 
 	fileLogger := file.NewLogger(file.LogHourly, "log")
@@ -93,7 +99,7 @@ func main() {
 		grpc2.WithTransportCredentials(insecure.NewCredentials()),
 	}
 	if err = auth.RegisterGateway(ctx, mux, cfg.Grpc().Address(), dialOptions...); err != nil {
-		log.Panic(err)
+		return err
 	}
 
 	sigint := make(chan os.Signal, 1)
@@ -111,7 +117,9 @@ func main() {
 	errGp.Go(func() error {
 		return db.Close()
 	})
-	if err := errGp.Wait(); err != nil {
-		log.Fatal(err)
+	if err = errGp.Wait(); err != nil {
+		return err
 	}
+
+	return nil
 }
