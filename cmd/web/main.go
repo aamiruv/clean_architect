@@ -3,12 +3,10 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,7 +18,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/AmirMirzayi/clean_architecture/api/router"
+	"github.com/AmirMirzayi/clean_architecture/api/httprouter"
 	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/filelog"
@@ -39,7 +37,7 @@ func main() {
 
 func run() error {
 	var configPath string
-	flag.StringVar(&configPath, "config", "config.json", "config filelog path, eg: -config=/path/to/filelog.json")
+	flag.StringVar(&configPath, "config", "config.json", "config file path, eg: -config=/path/to/file.json")
 	flag.Parse()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -47,36 +45,28 @@ func run() error {
 
 	cfg := config.LoadConfig(configPath)
 
-	db, err := sql.Open("mysql", cfg.DB().ConnectionString())
-	if err != nil {
-		return err
-	}
-	if err = db.Ping(); err != nil {
-		return err
-	}
-
 	fileLogger := filelog.New(filelog.LogHourly, "log")
-	theWebLog := weblog.New(cfg.LoggerURL())
+	remoteLogger := weblog.New(cfg.LoggerURL())
 	// log on console & file & http url at same time
-	logWriter := io.MultiWriter(os.Stdout, fileLogger, theWebLog)
+	logWriter := io.MultiWriter(os.Stdout, fileLogger, remoteLogger)
 	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC)
 	log.SetOutput(logWriter)
 
 	webLoggerFile := filelog.New(filelog.LogHourly, "weblog")
-	webLogger := log.New(
+	webServerLogger := log.New(
 		webLoggerFile, "",
 		log.Ltime|log.Lshortfile|log.LUTC|log.Lmsgprefix,
 	)
 
 	gwMux := runtime.NewServeMux()
 
-	muxHandler := router.New()
+	muxHandler := httprouter.New()
 	muxHandler.Handle("/", gwMux)
 
 	webServer := webserver.New(
 		webserver.WithMuxHandler(muxHandler),
 		webserver.WithAddress(cfg.Web().Address()),
-		webserver.WithLogger(webLogger),
+		webserver.WithLogger(webServerLogger),
 		webserver.WithTimeout(
 			cfg.Web().IdleTimeout(),
 			cfg.Web().ReadTimeOut(),
@@ -85,15 +75,30 @@ func run() error {
 		),
 	)
 
-	errCh := make(chan error)
+	errCh := make(chan error, 3)
 	defer close(errCh)
 
+	var (
+		db  *sql.DB
+		err error
+	)
+
 	go func() {
-		if err = webServer.Run(); !errors.Is(err, http.ErrServerClosed) {
+		db, err = sql.Open("mysql", cfg.DB().ConnectionString())
+		if err != nil {
+			errCh <- err
+		}
+		if err = db.Ping(); err != nil {
+			errCh <- err
+		}
+	}()
+
+	go func() {
+		if err = webServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to initialize web server: %w", err)
 		}
 	}()
-	log.Printf("web server initialized in address: %s", cfg.Web().Address())
+	fmt.Printf("web server initialized in address: %s", cfg.Web().Address())
 
 	grpcServer := grpcserver.New(cfg.Grpc().Address())
 	auth.InitializeAuthServer(grpcServer.Server(), db)
@@ -102,12 +107,12 @@ func run() error {
 			errCh <- fmt.Errorf("failed to initialize grpc server: %w", err)
 		}
 	}()
-	log.Printf("grpc server initialized in address: %s", cfg.Grpc().Address())
+	fmt.Printf("grpc server initialized in address: %s", cfg.Grpc().Address())
 
-	dialOptions := []grpc.DialOption{
+	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	if err = auth.RegisterGateway(ctx, gwMux, cfg.Grpc().Address(), dialOptions...); err != nil {
+	if err = auth.RegisterGateway(ctx, gwMux, cfg.Grpc().Address(), grpcDialOptions...); err != nil {
 		return err
 	}
 
@@ -119,7 +124,7 @@ func run() error {
 		return err
 
 	case sig := <-sigint:
-		log.Printf("received signal %s", sig)
+		fmt.Printf("received signal %s", sig)
 
 		errGp := errgroup.Group{}
 		errGp.Go(func() error {
