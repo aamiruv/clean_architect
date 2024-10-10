@@ -17,6 +17,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/AmirMirzayi/clean_architecture/api/httprouter"
 	"github.com/AmirMirzayi/clean_architecture/internal/auth"
@@ -98,16 +99,23 @@ func run() error {
 			errCh <- fmt.Errorf("failed to initialize web server: %w", err)
 		}
 	}()
-	fmt.Printf("web server initialized in address: %s", cfg.Web().Address())
+	fmt.Printf("web server initialized in address: %s\n\r", cfg.Web().Address())
 
-	grpcServer := grpcserver.New(cfg.Grpc().Address())
+	grpcServer := grpcserver.New(
+		cfg.Grpc().Address(),
+		grpc.MaxRecvMsgSize(cfg.Grpc().MaxReceiveMsgSize),
+		grpc.ReadBufferSize(cfg.Grpc().ReadBufferSize),
+	)
 	auth.InitializeAuthServer(grpcServer.Server(), db)
 	go func() {
 		if err = grpcServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to initialize grpc server: %w", err)
 		}
 	}()
-	fmt.Printf("grpc server initialized in address: %s", cfg.Grpc().Address())
+	if cfg.Grpc().HasReflection {
+		reflection.Register(grpcServer.Server())
+	}
+	fmt.Printf("grpc server initialized in address: %s\n\r", cfg.Grpc().Address())
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
