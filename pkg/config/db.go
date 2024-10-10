@@ -3,19 +3,19 @@ package config
 import "fmt"
 
 type db struct {
-	IP       string `json:"ip"`
-	Port     uint   `json:"port"`
-	UserName string `json:"userName"`
-	Password string `json:"password"`
-	DBName   string `json:"dbName"`
+	ip       string
+	port     uint
+	userName string
+	password string
+	dbName   string
 }
 
 func (db db) ConnectionString() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
-		db.UserName,
-		db.Password,
-		db.IP,
-		db.Port,
-		db.DBName,
+		db.userName,
+		db.password,
+		db.ip,
+		db.port,
+		db.dbName,
 	)
 }

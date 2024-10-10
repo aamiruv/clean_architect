@@ -6,30 +6,30 @@ import (
 )
 
 type web struct {
-	BindingIpAddress       string `json:"bindingIpAddress"`
-	Port                   uint   `json:"port"`
-	ReadTimeOutInSec       uint   `json:"readTimeOutInSec"`
-	IdleTimeoutInSec       uint   `json:"idleTimeoutInSec"`
-	WriteTimeoutInSec      uint   `json:"writeTimeoutInSec"`
-	ReadHeaderTimeoutInSec uint   `json:"readHeaderTimeoutInSec"`
+	bindingIpAddress       string
+	port                   uint
+	readTimeOutInSec       uint
+	idleTimeoutInSec       uint
+	writeTimeoutInSec      uint
+	readHeaderTimeoutInSec uint
 }
 
 func (w web) Address() string {
-	return fmt.Sprintf("%s:%d", w.BindingIpAddress, w.Port)
+	return fmt.Sprintf("%s:%d", w.bindingIpAddress, w.port)
 }
 
 func (w web) ReadTimeOut() time.Duration {
-	return time.Duration(w.ReadTimeOutInSec) * time.Second
+	return time.Duration(w.readTimeOutInSec) * time.Second
 }
 
 func (w web) IdleTimeout() time.Duration {
-	return time.Duration(w.IdleTimeoutInSec) * time.Second
+	return time.Duration(w.idleTimeoutInSec) * time.Second
 }
 
 func (w web) WriteTimeout() time.Duration {
-	return time.Duration(w.WriteTimeoutInSec) * time.Second
+	return time.Duration(w.writeTimeoutInSec) * time.Second
 }
 
 func (w web) ReadHeaderTimeout() time.Duration {
-	return time.Duration(w.ReadHeaderTimeoutInSec) * time.Second
+	return time.Duration(w.readHeaderTimeoutInSec) * time.Second
 }

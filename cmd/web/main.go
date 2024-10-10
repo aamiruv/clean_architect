@@ -44,7 +44,10 @@ func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cfg := config.LoadConfig(configPath)
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		return err
+	}
 
 	fileLogger := filelog.New(filelog.LogHourly, "log")
 	remoteLogger := weblog.New(cfg.LoggerURL())
@@ -80,8 +83,7 @@ func run() error {
 	defer close(errCh)
 
 	var (
-		db  *sql.DB
-		err error
+		db *sql.DB
 	)
 
 	go func() {
@@ -102,9 +104,9 @@ func run() error {
 	fmt.Printf("web server initialized in address: %s\n\r", cfg.Web().Address())
 
 	grpcServer := grpcserver.New(
-		cfg.Grpc().Address(),
-		grpc.MaxRecvMsgSize(cfg.Grpc().MaxReceiveMsgSize),
-		grpc.ReadBufferSize(cfg.Grpc().ReadBufferSize),
+		cfg.GRPC().Address(),
+		grpc.MaxRecvMsgSize(cfg.GRPC().MaxReceiveMsgSize()),
+		grpc.ReadBufferSize(cfg.GRPC().ReadBufferSize()),
 	)
 	auth.InitializeAuthServer(grpcServer.Server(), db)
 	go func() {
@@ -112,15 +114,15 @@ func run() error {
 			errCh <- fmt.Errorf("failed to initialize grpc server: %w", err)
 		}
 	}()
-	if cfg.Grpc().HasReflection {
+	if cfg.GRPC().HasReflection() {
 		reflection.Register(grpcServer.Server())
 	}
-	fmt.Printf("grpc server initialized in address: %s\n\r", cfg.Grpc().Address())
+	fmt.Printf("grpc server initialized in address: %s\n\r", cfg.GRPC().Address())
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	if err = auth.RegisterGateway(ctx, gwMux, cfg.Grpc().Address(), grpcDialOptions...); err != nil {
+	if err = auth.RegisterGateway(ctx, gwMux, cfg.GRPC().Address(), grpcDialOptions...); err != nil {
 		return err
 	}
 
