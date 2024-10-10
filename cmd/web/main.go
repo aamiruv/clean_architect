@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -79,14 +80,22 @@ func run() error {
 		),
 	)
 
-	errCh := make(chan error, 3)
-	defer close(errCh)
+	grpcServer := grpcserver.New(
+		cfg.GRPC().Address(),
+		grpc.MaxRecvMsgSize(cfg.GRPC().MaxReceiveMsgSize()),
+		grpc.ReadBufferSize(cfg.GRPC().ReadBufferSize()),
+	)
+
+	errCh := make(chan error)
 
 	var (
 		db *sql.DB
+		wg sync.WaitGroup
 	)
 
 	go func() {
+		wg.Add(1)
+		defer wg.Done()
 		db, err = sql.Open("mysql", cfg.DB().ConnectionString())
 		if err != nil {
 			errCh <- err
@@ -97,27 +106,33 @@ func run() error {
 	}()
 
 	go func() {
+		wg.Add(1)
+		defer wg.Done()
 		if err = webServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to initialize web server: %w", err)
 		}
 	}()
 	fmt.Printf("web server initialized in address: %s\n\r", cfg.Web().Address())
 
-	grpcServer := grpcserver.New(
-		cfg.GRPC().Address(),
-		grpc.MaxRecvMsgSize(cfg.GRPC().MaxReceiveMsgSize()),
-		grpc.ReadBufferSize(cfg.GRPC().ReadBufferSize()),
-	)
-	auth.InitializeAuthServer(grpcServer.Server(), db)
 	go func() {
+		wg.Add(1)
+		defer wg.Done()
 		if err = grpcServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to initialize grpc server: %w", err)
 		}
 	}()
+	fmt.Printf("grpc server initialized in address: %s\n\r", cfg.GRPC().Address())
+
 	if cfg.GRPC().HasReflection() {
 		reflection.Register(grpcServer.Server())
 	}
-	fmt.Printf("grpc server initialized in address: %s\n\r", cfg.GRPC().Address())
+
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	auth.InitializeAuthServer(grpcServer.Server(), db)
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
