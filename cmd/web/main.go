@@ -44,7 +44,7 @@ func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cfg, err := config.LoadConfig(configPath)
+	cfg, err := config.LoadConfigOrDefault(configPath)
 	if err != nil {
 		return err
 	}
