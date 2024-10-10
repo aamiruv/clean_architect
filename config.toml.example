@@ -1,0 +1,23 @@
+[db]
+ip = "192.168.1.106"
+port = 3306555
+userName = "amir"
+password = "mirzaei"
+dbName = "db"
+
+[web]
+bindingIpAddress = "0.0.0.0"
+port = 8071
+readTimeOutInSec = 7
+idleTimeoutInSec = 10
+writeTimeoutInSec = 20
+readHeaderTimeoutInSec = 1
+
+[grpc]
+bindingIpAddress = "127.0.0.1"
+port = 8070
+maxReceiveMsgSize = 5120
+readBufferSize = 5120
+hasReflection = true
+
+loggerURL = "http://127.0.0.1:8080/ping"
