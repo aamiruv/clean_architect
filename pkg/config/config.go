@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v3"
 )
 
@@ -55,6 +56,8 @@ func LoadConfig(fileAddress string) (appConfig, error) {
 		err = json.Unmarshal(bytes, &tmpCfg)
 	case ".yml", ".yaml":
 		err = yaml.Unmarshal(bytes, &tmpCfg)
+	case ".toml":
+		err = toml.Unmarshal(bytes, &tmpCfg)
 	default:
 		err = errors.New("Unsupported config's file type")
 	}
