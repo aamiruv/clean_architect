@@ -70,10 +70,10 @@ func run() error {
 	muxHandler.Handle("/", gwMux)
 
 	webServer := webserver.New(
-		webserver.WithMuxHandler(muxHandler),
+		webserver.WithHandler(muxHandler),
 		webserver.WithAddress(cfg.Web().Address()),
 		webserver.WithLogger(webServerLogger),
-		webserver.WithTimeout(
+		webserver.WithTimeouts(
 			cfg.Web().IdleTimeout(),
 			cfg.Web().ReadTimeOut(),
 			cfg.Web().WriteTimeout(),

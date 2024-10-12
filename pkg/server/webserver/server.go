@@ -11,7 +11,6 @@ import (
 
 type server struct {
 	httpServer *http.Server
-	mux        *http.ServeMux
 }
 
 func New(opts ...optionServerFunc) server {
@@ -25,7 +24,7 @@ func New(opts ...optionServerFunc) server {
 		WriteTimeout:      writeTimeout,
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
-	httpServer := server{httpServer: srv, mux: mux}
+	httpServer := server{httpServer: srv}
 	for _, opt := range opts {
 		opt(&httpServer)
 	}
@@ -34,18 +33,21 @@ func New(opts ...optionServerFunc) server {
 
 type optionServerFunc func(*server)
 
-func WithMuxHandler(mux *http.ServeMux) optionServerFunc {
+// WithHandler set handler to server
+func WithHandler(handler http.Handler) optionServerFunc {
 	return func(s *server) {
-		s.httpServer.Handler = mux
+		s.httpServer.Handler = handler
 	}
 }
 
+// WithAddress set access address to server
 func WithAddress(address string) optionServerFunc {
 	return func(s *server) {
 		s.httpServer.Addr = address
 	}
 }
 
+// WithLogger set log.Logger to the server error logger
 func WithLogger(logger *log.Logger) optionServerFunc {
 	return func(s *server) {
 		s.httpServer.ErrorLog = logger
@@ -58,12 +60,37 @@ func WithMaxHeaderBytes(bytes int) optionServerFunc {
 	}
 }
 
-func WithTimeout(idle, read, write, readHeader time.Duration) optionServerFunc {
+func WithIdleTimeout(idle time.Duration) optionServerFunc {
 	return func(s *server) {
 		s.httpServer.IdleTimeout = idle
+	}
+}
+
+func WithReadTimeout(read time.Duration) optionServerFunc {
+	return func(s *server) {
 		s.httpServer.ReadTimeout = read
-		s.httpServer.WriteTimeout = write
-		s.httpServer.ReadHeaderTimeout = readHeader
+	}
+}
+
+func WithWriteTimeout(write time.Duration) optionServerFunc {
+	return func(s *server) {
+		s.httpServer.ReadTimeout = write
+	}
+}
+
+func WithReadHeaderTimeout(read time.Duration) optionServerFunc {
+	return func(s *server) {
+		s.httpServer.ReadTimeout = read
+	}
+}
+
+// WithTimeouts set idle, read, write, readHeader timeout values to server
+func WithTimeouts(idle, read, write, readHeader time.Duration) optionServerFunc {
+	return func(s *server) {
+		WithIdleTimeout(idle)(s)
+		WithReadTimeout(read)(s)
+		WithWriteTimeout(write)(s)
+		WithReadHeaderTimeout(readHeader)(s)
 	}
 }
 
@@ -72,13 +99,14 @@ func (s *server) Run() error {
 }
 
 func (s *server) GracefulShutdown(deadline time.Duration) error {
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(deadline))
+	ctx, cancel := context.WithTimeout(context.Background(), deadline)
 	defer cancel()
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		err2 := s.httpServer.Close()
 		if err2 != nil {
 			return errors.Join(err, err2)
 		}
+		return err
 	}
 	return nil
 }
