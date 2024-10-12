@@ -1,4 +1,5 @@
-package weblog
+// Pacakge remotelog provides logged messages into files.
+package remotelog
 
 import (
 	"bytes"

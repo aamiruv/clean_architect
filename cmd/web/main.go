@@ -1,3 +1,4 @@
+// Package main runs a web server with that dependencies.
 package main
 
 import (
@@ -13,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AmirMirzayi/clean_architecture/pkg/logger/remotelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
@@ -24,7 +26,6 @@ import (
 	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/filelog"
-	"github.com/AmirMirzayi/clean_architecture/pkg/logger/weblog"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpcserver"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/webserver"
 )
@@ -51,7 +52,7 @@ func run() error {
 	}
 
 	fileLogger := filelog.New(filelog.LogHourly, "log")
-	remoteLogger := weblog.New(cfg.LoggerURL())
+	remoteLogger := remotelog.New(cfg.LoggerURL())
 	// log on console & file & http url at same time
 	logWriter := io.MultiWriter(os.Stdout, fileLogger, remoteLogger)
 	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC)

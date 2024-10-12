@@ -1,3 +1,4 @@
+// Pacakge grpcserver provides grpc server construction.
 package grpcserver
 
 import (

@@ -1,3 +1,4 @@
+// Package usecase is responsible for some operation to be executed.
 package usecase
 
 import (
@@ -9,7 +10,7 @@ import (
 )
 
 type AuthService interface {
-	Register(context.Context, domain.Auth) (domain.Auth, error)
+	HashPassword(context.Context, string) (string, error)
 }
 
 type AuthUseCase struct {
@@ -25,7 +26,7 @@ func NewAuthUseCase(authService AuthService, userService service.UserService) Au
 }
 
 func (u AuthUseCase) Register(ctx context.Context, auth domain.Auth) error {
-	auth, err := u.authService.Register(ctx, auth)
+	pwd, err := u.authService.HashPassword(ctx, auth.Password)
 	if err != nil {
 		return err
 	}
@@ -33,7 +34,7 @@ func (u AuthUseCase) Register(ctx context.Context, auth domain.Auth) error {
 	user := userDomain.User{
 		Email:       auth.Email,
 		PhoneNumber: auth.PhoneNumber,
-		Password:    auth.Password,
+		Password:    pwd,
 	}
 	_, err = u.userService.Create(ctx, user)
 	if err != nil {

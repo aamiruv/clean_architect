@@ -1,3 +1,4 @@
+// Package controller holds grpc service implementation.
 package controller
 
 import (

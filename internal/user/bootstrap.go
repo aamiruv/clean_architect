@@ -1,3 +1,4 @@
+// Package user holds all bootstrapper that connects repositories into a business flow related to manage users.
 package user
 
 import (

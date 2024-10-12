@@ -1,3 +1,4 @@
+// Package domain represents a User.
 package domain
 
 import (

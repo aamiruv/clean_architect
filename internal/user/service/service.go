@@ -18,7 +18,7 @@ func (s UserService) Create(ctx context.Context, user domain.User) (domain.User,
 	user.ID = uuid.New()
 	user.Status = domain.New
 	user.CreatedAt = time.Now()
-	err := s.Repository.Create(user)
+	err := s.Repository.Create(ctx, user)
 	if err != nil {
 		return user, fmt.Errorf("failed to create user: %w", err)
 	}

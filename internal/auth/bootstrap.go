@@ -1,3 +1,4 @@
+// Package auth holds all bootstrapper that manages business flow related to user authentication & authorization.
 package auth
 
 import (

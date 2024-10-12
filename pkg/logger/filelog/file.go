@@ -1,3 +1,4 @@
+// Pacakge filelog provides logged messages into files.
 package filelog
 
 import (

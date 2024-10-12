@@ -1,3 +1,6 @@
+// Package config provides configuration management for various services
+// such as database, grpc server, http server, etc.
+// It reads configuration from file and make available to other parts of application.
 package config
 
 import (
@@ -11,6 +14,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// appConfig holds the configurations for the entire application, including
+// db, web server, and grpc server configurations.
+// It has no Exported fields to encapsulate configurations.
 type appConfig struct {
 	db        db
 	web       web
@@ -34,6 +40,9 @@ func (app appConfig) LoggerURL() string {
 	return app.loggerURL
 }
 
+// tmpConfig holds the configurations for the entire application, including
+// db, web server, and grpc server configurations.
+// It should have Exported fields to work with tags.
 type tmpConfig struct {
 	DB struct {
 		IP       string `default:"127.0.0.1" json:"ip" yaml:"ip" toml:"ip"`
@@ -88,6 +97,7 @@ func (cfg tmpConfig) ToAppConfig() appConfig {
 	}
 }
 
+// LoadConfig will return appConfig which that values are filled by given config file's address.
 func LoadConfig(fileAddress string) (appConfig, error) {
 	bytes, err := os.ReadFile(fileAddress)
 	if err != nil {
@@ -114,6 +124,7 @@ func LoadConfig(fileAddress string) (appConfig, error) {
 	return tmpCfg.ToAppConfig(), nil
 }
 
+// LoadConfigOrDefault will do LoadConfig. if loading had problem, then returns default values config.
 func LoadConfigOrDefault(fileAddress string) (appConfig, error) {
 	cfg, err := LoadConfig(fileAddress)
 	if err == nil {
