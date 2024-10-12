@@ -1,6 +1,7 @@
 package domain
 
 type Auth struct {
-	UserName string
-	Password string
+	Email       string
+	PhoneNumber string
+	Password    string
 }

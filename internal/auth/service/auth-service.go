@@ -1,19 +1,22 @@
 package service
 
-import "github.com/AmirMirzayi/clean_architecture/internal/auth/domain"
+import (
+	"context"
 
-type AuthRepository interface {
-	Register(domain.Auth) error
+	"github.com/AmirMirzayi/clean_architecture/internal/auth/domain"
+)
+
+type AuthService struct{}
+
+func NewAuthService() AuthService {
+	return AuthService{}
 }
 
-type AuthService struct {
-	repository AuthRepository
-}
-
-func NewAuthService(authRepository AuthRepository) AuthService {
-	return AuthService{repository: authRepository}
-}
-
-func (s AuthService) Register(auth domain.Auth) error {
-	return s.repository.Register(auth)
+func (s AuthService) Register(ctx context.Context, auth domain.Auth) (domain.Auth, error) {
+	// todo: provide some password encryption mechanism
+	return domain.Auth{
+		Email:       auth.Email,
+		PhoneNumber: auth.PhoneNumber,
+		Password:    auth.Password,
+	}, nil
 }
