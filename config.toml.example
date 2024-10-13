@@ -20,4 +20,9 @@ maxReceiveMsgSize = 5120
 readBufferSize = 5120
 hasReflection = true
 
-loggerURL = "http://127.0.0.1:8080/ping"
+[logger]
+level = 0
+directory = ""
+fileCreationMode = 1
+remoteURL = "http://127.0.0.1:8080/ping"
+console = true
