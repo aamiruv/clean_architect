@@ -18,10 +18,10 @@ import (
 // db, web server, and grpc server configurations.
 // It has no Exported fields to encapsulate configurations.
 type appConfig struct {
-	db        db
-	web       web
-	grpc      grpc
-	loggerURL string
+	db     db
+	web    web
+	grpc   grpc
+	logger logger
 }
 
 func (app appConfig) DB() db {
@@ -36,8 +36,8 @@ func (app appConfig) GRPC() grpc {
 	return app.grpc
 }
 
-func (app appConfig) LoggerURL() string {
-	return app.loggerURL
+func (app appConfig) Logger() logger {
+	return app.logger
 }
 
 // tmpConfig holds the configurations for the entire application, including
@@ -66,7 +66,13 @@ type tmpConfig struct {
 		ReadBufferSize    int    `default:"5120" json:"readBufferSize" yaml:"readBufferSize" toml:"readBufferSize"`
 		HasReflection     bool   `default:"true" json:"hasReflection" yaml:"hasReflection" toml:"hasReflection"`
 	} `json:"grpc" yaml:"grpc" toml:"grpc"`
-	LoggerURL string `default:"http://127.0.0.1:8080/ping" json:"loggerURL" yaml:"loggerURL" toml:"loggerURL"`
+	Logger struct {
+		Level            int    `default:"0" json:"level" yaml:"level" toml:"level"`
+		Directory        string `default:"log" json:"directory" yaml:"directory" toml:"directory"`
+		FileCreationMode int    `default:"0" json:"fileCreationMode" yaml:"fileCreationMode" toml:"fileCreationMode"`
+		RemoteURL        string `default:"" json:"remoteURL" yaml:"remoteURL" toml:"remoteURL"`
+		Console          bool   `default:"true" json:"console" yaml:"console" toml:"console"`
+	} `json:"logger" yaml:"logger" toml:"logger"`
 }
 
 func (cfg tmpConfig) ToAppConfig() appConfig {
@@ -93,7 +99,13 @@ func (cfg tmpConfig) ToAppConfig() appConfig {
 			readBufferSize:    cfg.GRPC.ReadBufferSize,
 			hasReflection:     cfg.GRPC.HasReflection,
 		},
-		loggerURL: cfg.LoggerURL,
+		logger: logger{
+			level:            cfg.Logger.Level,
+			directory:        cfg.Logger.Directory,
+			fileCreationMode: cfg.Logger.FileCreationMode,
+			remoteURL:        cfg.Logger.RemoteURL,
+			console:          cfg.Logger.Console,
+		},
 	}
 }
 

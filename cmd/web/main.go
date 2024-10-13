@@ -34,7 +34,7 @@ const ShutdownTimeout = 5 * time.Second
 
 func main() {
 	if err := run(); err != nil {
-		slog.Error(err.Error())
+		panic(err)
 	}
 }
 
@@ -51,12 +51,21 @@ func run() error {
 		return err
 	}
 
-	fileLogger := filelog.New(filelog.LogHourly, "log")
-	remoteLogger := remotelog.New(cfg.LoggerURL())
-	// log on console & file & http url at same time
-	logWriter := io.MultiWriter(os.Stdout, fileLogger, remoteLogger)
+	var logWriters []io.Writer
+	if cfg.Logger().Console() {
+		logWriters = append(logWriters, os.Stdout)
+	}
+	if cfg.Logger().Directory() != "" {
+		fileLogger := filelog.New(filelog.LoggerType(cfg.Logger().FileCreationMode()), cfg.Logger().Directory())
+		logWriters = append(logWriters, fileLogger)
+	}
+	if cfg.Logger().RemoteURL() != "" {
+		remoteLogger := remotelog.New(cfg.Logger().RemoteURL())
+		logWriters = append(logWriters, remoteLogger)
+	}
 
-	logger := slog.New(slog.NewJSONHandler(logWriter, &slog.HandlerOptions{AddSource: true, Level: slog.LevelInfo}))
+	logWriter := io.MultiWriter(logWriters...)
+	logger := slog.New(slog.NewJSONHandler(logWriter, &slog.HandlerOptions{AddSource: true, Level: slog.Level(cfg.Logger().Level())}))
 	// no need to pass logger to another part of application
 	slog.SetDefault(logger)
 

@@ -1,4 +1,4 @@
-// Pacakge filelog provides logged messages into files.
+// Pacakge filelog provides store logged messages into file(s).
 package filelog
 
 import (
@@ -8,20 +8,21 @@ import (
 	"time"
 )
 
-type loggerType uint8
+type LoggerType uint8
 
 const (
-	LogHourly loggerType = iota + 1
-	LogDaily
+	logNone LoggerType = iota
 	LogMono
+	LogHourly
+	LogDaily
 )
 
 type Logger struct {
-	loggerType loggerType
+	loggerType LoggerType
 	directory  string
 }
 
-func New(loggerType loggerType, directory string) Logger {
+func New(loggerType LoggerType, directory string) Logger {
 	return Logger{
 		loggerType: loggerType,
 		directory:  directory,
@@ -34,6 +35,8 @@ func (l Logger) Write(p []byte) (int, error) {
 	y, m, d := time.Now().Date()
 
 	switch l.loggerType {
+	case logNone:
+		return 0, nil
 	case LogHourly:
 		h := time.Now().Hour()
 		logFileName = fmt.Sprintf("%s/%d/%d/%d/%d.log", l.directory, y, m, d, h)
@@ -41,6 +44,9 @@ func (l Logger) Write(p []byte) (int, error) {
 		logFileName = fmt.Sprintf("%s/%d/%d/%d.log", l.directory, y, m, d)
 	case LogMono:
 		logFileName = fmt.Sprintf("%s/log.log", l.directory)
+
+	default:
+		return 0, fmt.Errorf("invalid logger type")
 	}
 
 	file, err := openLogFile(logFileName)
