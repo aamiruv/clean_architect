@@ -29,23 +29,21 @@ func New(loggerType loggerType, directory string) Logger {
 }
 
 func (l Logger) Write(p []byte) (int, error) {
-	var (
-		file *os.File
-		err  error
-	)
+	var logFileName string
 
 	y, m, d := time.Now().Date()
 
 	switch l.loggerType {
 	case LogHourly:
-		h, _, _ := time.Now().Clock()
-		file, err = openLogFile(fmt.Sprintf("%s/%d/%d/%d/%d.log", l.directory, y, m, d, h))
+		h := time.Now().Hour()
+		logFileName = fmt.Sprintf("%s/%d/%d/%d/%d.log", l.directory, y, m, d, h)
 	case LogDaily:
-		file, err = openLogFile(fmt.Sprintf("%s/%d/%d/%d.log", l.directory, y, m, d))
+		logFileName = fmt.Sprintf("%s/%d/%d/%d.log", l.directory, y, m, d)
 	case LogMono:
-		file, err = openLogFile(fmt.Sprintf("%s/log.log", l.directory))
+		logFileName = fmt.Sprintf("%s/log.log", l.directory)
 	}
 
+	file, err := openLogFile(logFileName)
 	if err != nil {
 		return 0, err
 	}
