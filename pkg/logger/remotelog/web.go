@@ -3,8 +3,11 @@ package remotelog
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 )
+
+var _ io.Writer = logger{}
 
 type logger struct {
 	url string

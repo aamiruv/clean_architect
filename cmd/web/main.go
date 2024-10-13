@@ -128,7 +128,7 @@ func run() error {
 			errCh <- fmt.Errorf("failed to run web server: %w", err)
 		}
 	}()
-	logger.Info("web server initialized", "address", cfg.Web().Address())
+	logger.Info(fmt.Sprintf("web server initialized", cfg.Web().Address()))
 
 	go func() {
 		wg.Add(1)
@@ -137,7 +137,7 @@ func run() error {
 			errCh <- fmt.Errorf("failed to run grpc server: %w", err)
 		}
 	}()
-	logger.Info("grpc server initialized", "address", cfg.GRPC().Address())
+	logger.Info(fmt.Sprintf("grpc server initialized on %s", cfg.GRPC().Address()))
 
 	go func() {
 		wg.Wait()
@@ -159,7 +159,7 @@ func run() error {
 		return err
 
 	case sig := <-sigint:
-		logger.Info("received signal", "", sig)
+		logger.Info(fmt.Sprintf("received signal %s", sig))
 
 		errGp := errgroup.Group{}
 		errGp.Go(func() error {

@@ -3,6 +3,7 @@ package filelog
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -17,19 +18,21 @@ const (
 	LogDaily
 )
 
-type Logger struct {
+var _ io.Writer = logger{}
+
+type logger struct {
 	loggerType LoggerType
 	directory  string
 }
 
-func New(loggerType LoggerType, directory string) Logger {
-	return Logger{
+func New(loggerType LoggerType, directory string) logger {
+	return logger{
 		loggerType: loggerType,
 		directory:  directory,
 	}
 }
 
-func (l Logger) Write(p []byte) (int, error) {
+func (l logger) Write(p []byte) (int, error) {
 	var logFileName string
 
 	y, m, d := time.Now().Date()
