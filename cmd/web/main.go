@@ -7,14 +7,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/AmirMirzayi/clean_architecture/pkg/logger/remotelog"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
@@ -26,6 +25,7 @@ import (
 	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/filelog"
+	"github.com/AmirMirzayi/clean_architecture/pkg/logger/remotelog"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpcserver"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/webserver"
 )
@@ -34,7 +34,7 @@ const ShutdownTimeout = 5 * time.Second
 
 func main() {
 	if err := run(); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
 	}
 }
 
@@ -55,14 +55,14 @@ func run() error {
 	remoteLogger := remotelog.New(cfg.LoggerURL())
 	// log on console & file & http url at same time
 	logWriter := io.MultiWriter(os.Stdout, fileLogger, remoteLogger)
-	log.SetFlags(log.Ltime | log.Lshortfile | log.LUTC)
-	log.SetOutput(logWriter)
 
-	webLoggerFile := filelog.New(filelog.LogHourly, "weblog")
-	webServerLogger := log.New(
-		webLoggerFile, "",
-		log.Ltime|log.Lshortfile|log.LUTC|log.Lmsgprefix,
-	)
+	logger := slog.New(slog.NewJSONHandler(logWriter, &slog.HandlerOptions{AddSource: true, Level: slog.LevelInfo}))
+	// no need to pass logger to another part of application
+	slog.SetDefault(logger)
+
+	webServerLogFile := filelog.New(filelog.LogHourly, "weblog")
+	webServerLogWriter := io.MultiWriter(os.Stdout, webServerLogFile)
+	webServerLogger := slog.NewLogLogger(slog.NewJSONHandler(webServerLogWriter, nil), slog.LevelInfo)
 
 	gwMux := runtime.NewServeMux()
 
@@ -87,6 +87,10 @@ func run() error {
 		grpc.ReadBufferSize(cfg.GRPC().ReadBufferSize()),
 	)
 
+	if cfg.GRPC().HasReflection() {
+		reflection.Register(grpcServer.Server())
+	}
+
 	errCh := make(chan error)
 
 	var (
@@ -94,15 +98,17 @@ func run() error {
 		wg sync.WaitGroup
 	)
 
+	auth.InitializeAuthServer(grpcServer.Server(), db)
+
 	go func() {
 		wg.Add(1)
 		defer wg.Done()
 		db, err = sql.Open("mysql", cfg.DB().ConnectionString())
 		if err != nil {
-			errCh <- err
+			errCh <- fmt.Errorf("failed to open database connection: %w", err)
 		}
 		if err = db.Ping(); err != nil {
-			errCh <- err
+			errCh <- fmt.Errorf("failed to ping database: %w", err)
 		}
 	}()
 
@@ -110,30 +116,24 @@ func run() error {
 		wg.Add(1)
 		defer wg.Done()
 		if err = webServer.Run(); err != nil {
-			errCh <- fmt.Errorf("failed to initialize web server: %w", err)
+			errCh <- fmt.Errorf("failed to run web server: %w", err)
 		}
 	}()
-	fmt.Printf("web server initialized in address: %s\n\r", cfg.Web().Address())
+	logger.Info("web server initialized", "address", cfg.Web().Address())
 
 	go func() {
 		wg.Add(1)
 		defer wg.Done()
 		if err = grpcServer.Run(); err != nil {
-			errCh <- fmt.Errorf("failed to initialize grpc server: %w", err)
+			errCh <- fmt.Errorf("failed to run grpc server: %w", err)
 		}
 	}()
-	fmt.Printf("grpc server initialized in address: %s\n\r", cfg.GRPC().Address())
-
-	if cfg.GRPC().HasReflection() {
-		reflection.Register(grpcServer.Server())
-	}
+	logger.Info("grpc server initialized", "address", cfg.GRPC().Address())
 
 	go func() {
 		wg.Wait()
 		close(errCh)
 	}()
-
-	auth.InitializeAuthServer(grpcServer.Server(), db)
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -150,7 +150,7 @@ func run() error {
 		return err
 
 	case sig := <-sigint:
-		fmt.Printf("received signal %s", sig)
+		logger.Info("received signal", "", sig)
 
 		errGp := errgroup.Group{}
 		errGp.Go(func() error {
