@@ -4,8 +4,11 @@ package user
 import (
 	"database/sql"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository"
 	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository/memory"
+	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository/mongodb"
 	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository/sqldb"
 	"github.com/AmirMirzayi/clean_architecture/internal/user/service"
 )
@@ -22,4 +25,8 @@ func NewSQLRepository(db *sql.DB) repository.Repository {
 
 func NewMemoryRepository() repository.Repository {
 	return memory.NewRepository()
+}
+
+func NewMongodbRepository(userCollection *mongo.Collection) repository.Repository {
+	return mongodb.NewRepository(userCollection)
 }
