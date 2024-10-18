@@ -6,8 +6,9 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/creasty/defaults v1.8.0
 	github.com/go-sql-driver/mysql v1.8.1
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1
+	github.com/stretchr/testify v1.9.0
 	go.mongodb.org/mongo-driver v1.17.1
 	golang.org/x/sync v0.8.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20240213162025-012b6fc9bca9

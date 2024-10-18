@@ -5,14 +5,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+
 	"github.com/AmirMirzayi/clean_architecture/internal/user"
 	"github.com/AmirMirzayi/clean_architecture/internal/user/domain"
-	"github.com/google/uuid"
 )
 
 func TestCreateUser(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	defer t.Cleanup(cancel)
+
+	assert := require.New(t)
 
 	u := domain.User{
 		Name:        "amir",
@@ -22,28 +27,13 @@ func TestCreateUser(t *testing.T) {
 	}
 	userService := user.NewService(user.NewMemoryRepository())
 	result, err := userService.Create(ctx, u)
-	if err != nil {
-		t.Fail()
-	}
-	if result.ID == uuid.Nil {
-		t.Fail()
-	}
-	if result.Status != domain.New {
-		t.Fail()
-	}
-	if result.Name != u.Name {
-		t.Fail()
-	}
-	if result.PhoneNumber != u.PhoneNumber {
-		t.Fail()
-	}
-	if result.Password != u.Password {
-		t.Fail()
-	}
-	if result.CreatedAt != time.Now() {
-		t.Fail()
-	}
-	if result.Email != u.Email {
-		t.Fail()
-	}
+
+	assert.Nil(err)
+	assert.NotEqual(uuid.Nil, result.ID)
+	assert.Equal(domain.New, result.Status)
+	assert.Equal(u.Name, result.Name)
+	assert.Equal(u.PhoneNumber, result.PhoneNumber)
+	assert.Equal(u.Password, result.Password)
+	assert.Equal(time.Now(), result.CreatedAt)
+	assert.Equal(u.Email, result.Email)
 }
