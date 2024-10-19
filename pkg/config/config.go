@@ -45,11 +45,13 @@ func (app appConfig) Logger() logger {
 // It should have Exported fields to work with tags.
 type tmpConfig struct {
 	DB struct {
+		Driver   string `default:"sqlite" json:"driver" yaml:"driver" toml:"driver"`
 		IP       string `default:"127.0.0.1" json:"ip" yaml:"ip" toml:"ip"`
 		Port     uint   `default:"3306" json:"port" yaml:"port" toml:"port"`
 		UserName string `default:"amir" json:"userName" yaml:"userName" toml:"userName"`
 		Password string `default:"mirzaei" json:"password" yaml:"password" toml:"password"`
-		DBName   string `default:"clean-architect" json:"dbName" yaml:"dbName" toml:"dbName"`
+		Name     string `default:"clean-architect" json:"name" yaml:"name" toml:"name"`
+		Path     string `default:"." json:"path" yaml:"path" toml:"path"`
 	} `json:"db" yaml:"db" toml:"db"`
 	Web struct {
 		BindingIPAddress       string `default:"0.0.0.0" json:"bindingIpAddress" yaml:"bindingIpAddress" toml:"bindingIpAddress"`
@@ -78,11 +80,13 @@ type tmpConfig struct {
 func (cfg tmpConfig) ToAppConfig() appConfig {
 	return appConfig{
 		db: db{
+			driver:   cfg.DB.Driver,
 			ip:       cfg.DB.IP,
 			port:     cfg.DB.Port,
 			userName: cfg.DB.UserName,
 			password: cfg.DB.Password,
-			dbName:   cfg.DB.DBName,
+			name:     cfg.DB.Name,
+			path:     cfg.DB.Path,
 		},
 		web: web{
 			bindingIpAddress:       cfg.Web.BindingIPAddress,

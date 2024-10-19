@@ -16,10 +16,12 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	_ "github.com/lib/pq"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
+	_ "modernc.org/sqlite"
 
 	"github.com/AmirMirzayi/clean_architecture/api/httprouter"
 	"github.com/AmirMirzayi/clean_architecture/internal/auth"
@@ -107,12 +109,10 @@ func run() error {
 		wg sync.WaitGroup
 	)
 
-	auth.InitializeAuthServer(grpcServer.Server(), db)
-
 	go func() {
 		wg.Add(1)
 		defer wg.Done()
-		db, err = sql.Open("mysql", cfg.DB().ConnectionString())
+		db, err = sql.Open(cfg.DB().Driver(), cfg.DB().ConnectionString())
 		if err != nil {
 			errCh <- fmt.Errorf("failed to open database connection: %w", err)
 		}
@@ -128,7 +128,7 @@ func run() error {
 			errCh <- fmt.Errorf("failed to run web server: %w", err)
 		}
 	}()
-	logger.Info(fmt.Sprintf("web server initialized", cfg.Web().Address()))
+	logger.Info(fmt.Sprintf("web server initialized on %s", cfg.Web().Address()))
 
 	go func() {
 		wg.Add(1)
@@ -143,6 +143,8 @@ func run() error {
 		wg.Wait()
 		close(errCh)
 	}()
+
+	auth.InitializeAuthServer(grpcServer.Server(), db)
 
 	grpcDialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
