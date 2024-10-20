@@ -78,7 +78,7 @@ func run() error {
 	webServerLogWriter := io.MultiWriter(os.Stdout, webServerLogFile)
 	webServerLogger := slog.NewLogLogger(slog.NewJSONHandler(webServerLogWriter, nil), slog.LevelInfo)
 
-	// todo: configurable log writer(ex: elastic, prometheus, web-service, etc.)
+	// todo: configurable log writer(ex: ELK, prometheus, web-service, etc.)
 	// specific logger used for server metric
 	serverMetricLogger := slog.NewLogLogger(slog.NewJSONHandler(os.Stdout, nil), slog.LevelInfo)
 	// specific logger used for server(grpc&http) panic
@@ -97,7 +97,7 @@ func run() error {
 	}
 
 	// should metric response time even if panic occurred?
-	handler := middleware.Chain(muxHandler, responseTimeMiddleware, recoveryMiddleware)
+	handler := middleware.Chain(muxHandler, responseTimeMiddleware, recoveryMiddleware, middleware.DenyUnauthorizedClient)
 
 	webServer := webserver.New(
 		webserver.WithHandler(handler),
@@ -122,7 +122,7 @@ func run() error {
 		cfg.GRPC().Address(),
 		grpc.MaxRecvMsgSize(cfg.GRPC().MaxReceiveMsgSize()),
 		grpc.ReadBufferSize(cfg.GRPC().ReadBufferSize()),
-		grpc.ChainUnaryInterceptor(responseTimeMeterInterceptor, recoveryInterceptor),
+		grpc.ChainUnaryInterceptor(responseTimeMeterInterceptor, recoveryInterceptor, interceptor.DenyUnauthorizedClient),
 	)
 
 	if cfg.GRPC().HasReflection() {

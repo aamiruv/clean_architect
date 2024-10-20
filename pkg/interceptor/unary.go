@@ -8,6 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -26,5 +27,16 @@ func ResponseTimeMeter(ctx context.Context, req any, info *grpc.UnaryServerInfo,
 	defer func() {
 		logger.Printf("completed in: %v", time.Since(now))
 	}()
+	return handler(ctx, req)
+}
+
+// DenyUnauthorizedClient will check request for authorization metadata
+// and returns error if not found
+func DenyUnauthorizedClient(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	// fixme: validate authorization token
+	v := metadata.ValueFromIncomingContext(ctx, "authorization")
+	if len(v) == 0 {
+		return nil, status.Error(codes.Unauthenticated, "unauthorized")
+	}
 	return handler(ctx, req)
 }
