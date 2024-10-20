@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -26,8 +27,10 @@ import (
 	"github.com/AmirMirzayi/clean_architecture/api/httprouter"
 	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
+	"github.com/AmirMirzayi/clean_architecture/pkg/interceptor"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/filelog"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/remotelog"
+	"github.com/AmirMirzayi/clean_architecture/pkg/middleware"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpcserver"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/webserver"
 )
@@ -75,13 +78,29 @@ func run() error {
 	webServerLogWriter := io.MultiWriter(os.Stdout, webServerLogFile)
 	webServerLogger := slog.NewLogLogger(slog.NewJSONHandler(webServerLogWriter, nil), slog.LevelInfo)
 
+	// todo: configurable log writer(ex: elastic, prometheus, web-service, etc.)
+	// specific logger used for server metric
+	serverMetricLogger := slog.NewLogLogger(slog.NewJSONHandler(os.Stdout, nil), slog.LevelInfo)
+	// specific logger used for server(grpc&http) panic
+	serverPanicLogger := slog.NewLogLogger(slog.NewJSONHandler(os.Stdout, nil), slog.LevelInfo)
+
 	gwMux := runtime.NewServeMux()
 
 	muxHandler := httprouter.New()
 	muxHandler.Handle("/", gwMux)
 
+	responseTimeMiddleware := func(handler http.Handler) http.Handler {
+		return middleware.MeterResponseTime(handler, serverMetricLogger)
+	}
+	recoveryMiddleware := func(handler http.Handler) http.Handler {
+		return middleware.Recovery(handler, serverPanicLogger)
+	}
+
+	// should metric response time even if panic occurred?
+	handler := middleware.Chain(muxHandler, responseTimeMiddleware, recoveryMiddleware)
+
 	webServer := webserver.New(
-		webserver.WithHandler(muxHandler),
+		webserver.WithHandler(handler),
 		webserver.WithAddress(cfg.Web().Address()),
 		webserver.WithLogger(webServerLogger),
 		webserver.WithTimeouts(
@@ -92,10 +111,18 @@ func run() error {
 		),
 	)
 
+	responseTimeMeterInterceptor := func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		return interceptor.ResponseTimeMeter(ctx, req, info, handler, serverMetricLogger)
+	}
+	recoveryInterceptor := func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		return interceptor.Recovery(ctx, req, info, handler, serverPanicLogger)
+	}
+
 	grpcServer := grpcserver.New(
 		cfg.GRPC().Address(),
 		grpc.MaxRecvMsgSize(cfg.GRPC().MaxReceiveMsgSize()),
 		grpc.ReadBufferSize(cfg.GRPC().ReadBufferSize()),
+		grpc.ChainUnaryInterceptor(responseTimeMeterInterceptor, recoveryInterceptor),
 	)
 
 	if cfg.GRPC().HasReflection() {
@@ -109,8 +136,9 @@ func run() error {
 		wg sync.WaitGroup
 	)
 
+	wg.Add(3)
+
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		db, err = sql.Open(cfg.DB().Driver(), cfg.DB().ConnectionString())
 		if err != nil {
@@ -122,7 +150,6 @@ func run() error {
 	}()
 
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		if err = webServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to run web server: %w", err)
@@ -131,7 +158,6 @@ func run() error {
 	logger.Info(fmt.Sprintf("web server initialized on %s", cfg.Web().Address()))
 
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		if err = grpcServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to run grpc server: %w", err)

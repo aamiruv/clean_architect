@@ -1,3 +1,4 @@
+// Package middleware contains http middlewares which acts before request get into the server handler
 package middleware
 
 import (
@@ -15,11 +16,11 @@ func Chain(handler http.Handler, middlewares ...Middleware) http.Handler {
 	return handler
 }
 
-func Recovery(next http.Handler) http.Handler {
+func Recovery(next http.Handler, logger *log.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				log.Printf("recovered: %v", rec)
+				logger.Printf("recovered: %v", rec)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			}
 		}()
@@ -27,11 +28,11 @@ func Recovery(next http.Handler) http.Handler {
 	})
 }
 
-func MeterResponseTime(next http.Handler) http.Handler {
+func MeterResponseTime(next http.Handler, logger *log.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
 		defer func() {
-			log.Printf("Completed in %v", time.Since(now))
+			logger.Printf("Completed in %v", time.Since(now))
 		}()
 		next.ServeHTTP(w, r)
 	})
