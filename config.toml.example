@@ -1,9 +1,11 @@
 [db]
+driver = "mysql"
 ip = "192.168.1.106"
 port = 3306555
 userName = "amir"
 password = "mirzaei"
-dbName = "db"
+name = "db"
+path = "."
 
 [web]
 bindingIpAddress = "0.0.0.0"
