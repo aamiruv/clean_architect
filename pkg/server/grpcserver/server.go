@@ -28,10 +28,7 @@ func (s server) Run() error {
 
 func (s server) GracefulShutdown(deadline time.Duration) {
 	s.grpcServer.GracefulStop()
-	go func() {
-		time.Sleep(deadline)
-		s.grpcServer.Stop()
-	}()
+	time.AfterFunc(deadline, func() { s.grpcServer.Stop() })
 }
 
 func (s server) Server() *grpc.Server {
