@@ -15,8 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/AmirMirzayi/clean_architecture/api/httprouter"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
@@ -26,6 +24,8 @@ import (
 	"google.golang.org/grpc/reflection"
 	_ "modernc.org/sqlite"
 
+	"github.com/AmirMirzayi/clean_architecture/api/handler"
+	"github.com/AmirMirzayi/clean_architecture/internal/auth"
 	"github.com/AmirMirzayi/clean_architecture/pkg/config"
 	"github.com/AmirMirzayi/clean_architecture/pkg/interceptor"
 	"github.com/AmirMirzayi/clean_architecture/pkg/logger/filelog"
@@ -87,7 +87,7 @@ func run() error {
 	gwMux := runtime.NewServeMux()
 
 	muxHandler := http.NewServeMux()
-	httprouter.Register(muxHandler, webServerLogger)
+	handler.Register(muxHandler, webServerLogger)
 	muxHandler.Handle("/", gwMux)
 
 	responseTimeMiddleware := func(handler http.Handler) http.Handler {
@@ -98,7 +98,10 @@ func run() error {
 	}
 
 	// should metric response time even if panic occurred?
-	handler := middleware.Chain(muxHandler, responseTimeMiddleware, recoveryMiddleware, middleware.EnforceJSON)
+	handler := middleware.Chain(muxHandler,
+		responseTimeMiddleware,
+		recoveryMiddleware,
+		middleware.EnforceJSON)
 
 	webServer := webserver.New(
 		webserver.WithHandler(handler),
@@ -123,7 +126,7 @@ func run() error {
 		cfg.GRPC().Address(),
 		grpc.MaxRecvMsgSize(cfg.GRPC().MaxReceiveMsgSize()),
 		grpc.ReadBufferSize(cfg.GRPC().ReadBufferSize()),
-		grpc.ChainUnaryInterceptor(responseTimeMeterInterceptor, recoveryInterceptor, interceptor.DenyUnauthorizedClient),
+		grpc.ChainUnaryInterceptor(responseTimeMeterInterceptor, recoveryInterceptor),
 	)
 
 	if cfg.GRPC().HasReflection() {
@@ -156,7 +159,6 @@ func run() error {
 			errCh <- fmt.Errorf("failed to ping database: %w", err)
 		}
 	}()
-	auth.InitializeAuthServer(grpcServer.Server(), db)
 
 	go func() {
 		defer wg.Done()
@@ -181,6 +183,8 @@ func run() error {
 
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
+
+	auth.InitializeAuthServer(grpcServer.Server(), db)
 
 	select {
 	case err = <-errCh:

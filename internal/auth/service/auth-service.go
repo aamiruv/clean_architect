@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct{}
@@ -11,6 +14,9 @@ func NewAuthService() AuthService {
 }
 
 func (s AuthService) HashPassword(ctx context.Context, pwd string) (string, error) {
-	// todo: provide some password encryption mechanism
-	return pwd, nil
+	password, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("error hashing password: %v", err)
+	}
+	return string(password), nil
 }
