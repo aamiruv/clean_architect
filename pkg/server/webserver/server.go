@@ -10,7 +10,8 @@ import (
 )
 
 type server struct {
-	httpServer *http.Server
+	httpServer      *http.Server
+	shutdownTimeout time.Duration
 }
 
 func New(opts ...optionServerFunc) server {
@@ -24,7 +25,10 @@ func New(opts ...optionServerFunc) server {
 		WriteTimeout:      writeTimeout,
 		ReadHeaderTimeout: readHeaderTimeout,
 	}
-	httpServer := server{httpServer: srv}
+	httpServer := server{
+		httpServer:      srv,
+		shutdownTimeout: shutdownTimeout,
+	}
 	for _, opt := range opts {
 		opt(&httpServer)
 	}
@@ -84,13 +88,20 @@ func WithReadHeaderTimeout(read time.Duration) optionServerFunc {
 	}
 }
 
+func WithShutdownTimeout(shutdown time.Duration) optionServerFunc {
+	return func(s *server) {
+		s.shutdownTimeout = shutdown
+	}
+}
+
 // WithTimeouts set idle, read, write, readHeader timeout values to server
-func WithTimeouts(idle, read, write, readHeader time.Duration) optionServerFunc {
+func WithTimeouts(idle, read, write, readHeader, shutdown time.Duration) optionServerFunc {
 	return func(s *server) {
 		WithIdleTimeout(idle)(s)
 		WithReadTimeout(read)(s)
 		WithWriteTimeout(write)(s)
 		WithReadHeaderTimeout(readHeader)(s)
+		WithShutdownTimeout(shutdown)(s)
 	}
 }
 
@@ -98,8 +109,8 @@ func (s *server) Run() error {
 	return s.httpServer.ListenAndServe()
 }
 
-func (s *server) GracefulShutdown(deadline time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), deadline)
+func (s *server) GracefulShutdown() error {
+	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		err2 := s.httpServer.Close()

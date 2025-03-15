@@ -13,7 +13,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -34,8 +33,6 @@ import (
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpcserver"
 	"github.com/AmirMirzayi/clean_architecture/pkg/server/webserver"
 )
-
-const ShutdownTimeout = 5 * time.Second
 
 func main() {
 	if err := run(); err != nil {
@@ -98,13 +95,13 @@ func run() error {
 	}
 
 	// should metric response time even if panic occurred?
-	handler := middleware.Chain(muxHandler,
+	apiHandler := middleware.Chain(muxHandler,
 		responseTimeMiddleware,
 		recoveryMiddleware,
 		middleware.EnforceJSON)
 
 	webServer := webserver.New(
-		webserver.WithHandler(handler),
+		webserver.WithHandler(apiHandler),
 		webserver.WithAddress(cfg.Web().Address()),
 		webserver.WithLogger(webServerLogger),
 		webserver.WithTimeouts(
@@ -112,6 +109,7 @@ func run() error {
 			cfg.Web().ReadTimeOut(),
 			cfg.Web().WriteTimeout(),
 			cfg.Web().ReadHeaderTimeout(),
+			cfg.Web().ShutdownTimeout(),
 		),
 	)
 
@@ -124,6 +122,7 @@ func run() error {
 
 	grpcServer := grpcserver.New(
 		cfg.GRPC().Address(),
+		cfg.GRPC().ShutdownTimeout(),
 		grpc.MaxRecvMsgSize(cfg.GRPC().MaxReceiveMsgSize()),
 		grpc.ReadBufferSize(cfg.GRPC().ReadBufferSize()),
 		grpc.ChainUnaryInterceptor(responseTimeMeterInterceptor, recoveryInterceptor),
@@ -195,10 +194,10 @@ func run() error {
 
 		errGp := errgroup.Group{}
 		errGp.Go(func() error {
-			return webServer.GracefulShutdown(ShutdownTimeout)
+			return webServer.GracefulShutdown()
 		})
 		errGp.Go(func() error {
-			grpcServer.GracefulShutdown(ShutdownTimeout)
+			grpcServer.GracefulShutdown()
 			return nil
 		})
 		errGp.Go(func() error {

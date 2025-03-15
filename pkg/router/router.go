@@ -13,16 +13,16 @@ type (
 		middlewares []middleware.Middleware
 	}
 
-	// routing path eg: /shelves/{shelf_id}/books
+	// routing path e.g. /shelves/{shelf_id}/books
 	Path string
 
-	// http method eg: http.MethodGet or empty to handle all types
+	// http method e.g. http.MethodGet or empty to handle all types
 	Method string
 
 	// Route include
 	Route map[Path]map[Method]actionHandler
 
-	// routing prefix eg: /api/v1
+	// routing prefix e.g. /api/v1
 	Prefix string
 
 	// routing group allow you to set prefix and middlewares on

@@ -9,13 +9,18 @@ import (
 )
 
 type server struct {
-	grpcServer     *grpc.Server
-	bindingAddress string
+	grpcServer      *grpc.Server
+	bindingAddress  string
+	shutdownTimeout time.Duration
 }
 
-func New(bindingAddress string, options ...grpc.ServerOption) server {
+func New(bindingAddress string, shutdownTimeout time.Duration, options ...grpc.ServerOption) server {
 	s := grpc.NewServer(options...)
-	return server{grpcServer: s, bindingAddress: bindingAddress}
+	return server{
+		grpcServer:      s,
+		bindingAddress:  bindingAddress,
+		shutdownTimeout: shutdownTimeout,
+	}
 }
 
 func (s server) Run() error {
@@ -26,9 +31,11 @@ func (s server) Run() error {
 	return s.grpcServer.Serve(ls)
 }
 
-func (s server) GracefulShutdown(deadline time.Duration) {
+func (s server) GracefulShutdown() {
 	s.grpcServer.GracefulStop()
-	time.AfterFunc(deadline, func() { s.grpcServer.Stop() })
+	time.AfterFunc(s.shutdownTimeout, func() {
+		s.grpcServer.Stop()
+	})
 }
 
 func (s server) Server() *grpc.Server {

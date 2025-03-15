@@ -12,6 +12,7 @@ type web struct {
 	idleTimeoutInSec       uint
 	writeTimeoutInSec      uint
 	readHeaderTimeoutInSec uint
+	shutdownTimeout        uint
 }
 
 func (w web) Address() string {
@@ -32,4 +33,8 @@ func (w web) WriteTimeout() time.Duration {
 
 func (w web) ReadHeaderTimeout() time.Duration {
 	return time.Duration(w.readHeaderTimeoutInSec) * time.Second
+}
+
+func (w web) ShutdownTimeout() time.Duration {
+	return time.Duration(w.shutdownTimeout) * time.Second
 }

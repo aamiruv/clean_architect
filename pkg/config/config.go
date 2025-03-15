@@ -60,13 +60,15 @@ type tmpConfig struct {
 		IdleTimeoutInSec       uint   `default:"10" json:"idleTimeoutInSec" yaml:"idleTimeoutInSec" toml:"idleTimeoutInSec"`
 		WriteTimeoutInSec      uint   `default:"20" json:"writeTimeoutInSec" yaml:"writeTimeoutInSec" toml:"writeTimeoutInSec"`
 		ReadHeaderTimeoutInSec uint   `default:"1" json:"readHeaderTimeoutInSec" yaml:"readHeaderTimeoutInSec" toml:"readHeaderTimeoutInSec"`
+		ShutdownTimeoutInSec   uint   `default:"1" json:"shutdownTimeoutInSec" yaml:"shutdownTimeoutInSec" toml:"shutdownTimeoutInSec"`
 	} `json:"web" yaml:"web" toml:"web"`
 	GRPC struct {
-		BindingIPAddress  string `default:"127.0.0.1" json:"bindingIpAddress" yaml:"bindingIpAddress" toml:"bindingIpAddress"`
-		Port              uint   `default:"8070" json:"port" yaml:"port" toml:"port"`
-		MaxReceiveMsgSize int    `default:"5120" json:"maxReceiveMsgSize" yaml:"maxReceiveMsgSize" toml:"maxReceiveMsgSize"`
-		ReadBufferSize    int    `default:"5120" json:"readBufferSize" yaml:"readBufferSize" toml:"readBufferSize"`
-		HasReflection     bool   `default:"true" json:"hasReflection" yaml:"hasReflection" toml:"hasReflection"`
+		BindingIPAddress     string `default:"127.0.0.1" json:"bindingIpAddress" yaml:"bindingIpAddress" toml:"bindingIpAddress"`
+		Port                 uint   `default:"8070" json:"port" yaml:"port" toml:"port"`
+		MaxReceiveMsgSize    int    `default:"5120" json:"maxReceiveMsgSize" yaml:"maxReceiveMsgSize" toml:"maxReceiveMsgSize"`
+		ReadBufferSize       int    `default:"5120" json:"readBufferSize" yaml:"readBufferSize" toml:"readBufferSize"`
+		HasReflection        bool   `default:"true" json:"hasReflection" yaml:"hasReflection" toml:"hasReflection"`
+		ShutdownTimeoutInSec uint   `default:"1" json:"shutdownTimeoutInSec" yaml:"shutdownTimeoutInSec" toml:"shutdownTimeoutInSec"`
 	} `json:"grpc" yaml:"grpc" toml:"grpc"`
 	Logger struct {
 		Level            int    `default:"0" json:"level" yaml:"level" toml:"level"`
@@ -95,6 +97,7 @@ func (cfg tmpConfig) ToAppConfig() appConfig {
 			idleTimeoutInSec:       cfg.Web.IdleTimeoutInSec,
 			writeTimeoutInSec:      cfg.Web.WriteTimeoutInSec,
 			readHeaderTimeoutInSec: cfg.Web.ReadHeaderTimeoutInSec,
+			shutdownTimeout:        cfg.Web.ShutdownTimeoutInSec,
 		},
 		grpc: grpc{
 			bindingIpAddress:  cfg.GRPC.BindingIPAddress,
@@ -102,6 +105,7 @@ func (cfg tmpConfig) ToAppConfig() appConfig {
 			maxReceiveMsgSize: cfg.GRPC.MaxReceiveMsgSize,
 			readBufferSize:    cfg.GRPC.ReadBufferSize,
 			hasReflection:     cfg.GRPC.HasReflection,
+			shutdownTimeout:   cfg.GRPC.ShutdownTimeoutInSec,
 		},
 		logger: logger{
 			level:            cfg.Logger.Level,

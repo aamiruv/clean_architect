@@ -1,6 +1,9 @@
 package config
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type grpc struct {
 	bindingIpAddress  string
@@ -8,6 +11,7 @@ type grpc struct {
 	maxReceiveMsgSize int
 	readBufferSize    int
 	hasReflection     bool
+	shutdownTimeout   uint
 }
 
 func (g grpc) Address() string {
@@ -24,4 +28,8 @@ func (g grpc) ReadBufferSize() int {
 
 func (g grpc) HasReflection() bool {
 	return g.hasReflection
+}
+
+func (g grpc) ShutdownTimeout() time.Duration {
+	return time.Duration(g.shutdownTimeout) * time.Second
 }

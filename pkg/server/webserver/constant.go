@@ -11,4 +11,5 @@ const (
 	readTimeout       = 7 * time.Second
 	writeTimeout      = 15 * time.Second
 	readHeaderTimeout = 1 * time.Second
+	shutdownTimeout   = 15 * time.Second
 )
