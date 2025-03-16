@@ -23,15 +23,18 @@ import (
 	"google.golang.org/grpc/reflection"
 	_ "modernc.org/sqlite"
 
-	"github.com/AmirMirzayi/clean_architecture/api/handler"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth"
-	"github.com/AmirMirzayi/clean_architecture/pkg/config"
-	"github.com/AmirMirzayi/clean_architecture/pkg/interceptor"
-	"github.com/AmirMirzayi/clean_architecture/pkg/logger/filelog"
-	"github.com/AmirMirzayi/clean_architecture/pkg/logger/remotelog"
-	"github.com/AmirMirzayi/clean_architecture/pkg/middleware"
-	"github.com/AmirMirzayi/clean_architecture/pkg/server/grpcserver"
-	"github.com/AmirMirzayi/clean_architecture/pkg/server/webserver"
+	"github.com/amirzayi/clean_architec/api/handler"
+	"github.com/amirzayi/clean_architec/internal/auth"
+	"github.com/amirzayi/clean_architec/internal/auth/service"
+	"github.com/amirzayi/clean_architec/internal/auth/usecase"
+	"github.com/amirzayi/clean_architec/internal/user"
+	"github.com/amirzayi/clean_architec/pkg/config"
+	"github.com/amirzayi/clean_architec/pkg/httpmiddleware"
+	"github.com/amirzayi/clean_architec/pkg/interceptor"
+	"github.com/amirzayi/clean_architec/pkg/logger/filelog"
+	"github.com/amirzayi/clean_architec/pkg/logger/remotelog"
+	"github.com/amirzayi/clean_architec/pkg/server/grpcserver"
+	"github.com/amirzayi/clean_architec/pkg/server/webserver"
 )
 
 func main() {
@@ -84,21 +87,20 @@ func run() error {
 	gwMux := runtime.NewServeMux()
 
 	muxHandler := http.NewServeMux()
-	handler.Register(muxHandler, webServerLogger)
 	muxHandler.Handle("/", gwMux)
 
 	responseTimeMiddleware := func(handler http.Handler) http.Handler {
-		return middleware.MeterResponseTime(handler, serverMetricLogger)
+		return httpmiddleware.MeterResponseTime(handler, serverMetricLogger)
 	}
 	recoveryMiddleware := func(handler http.Handler) http.Handler {
-		return middleware.Recovery(handler, serverPanicLogger)
+		return httpmiddleware.Recovery(handler, serverPanicLogger)
 	}
 
 	// should metric response time even if panic occurred?
-	apiHandler := middleware.Chain(muxHandler,
+	apiHandler := httpmiddleware.Chain(muxHandler,
 		responseTimeMiddleware,
 		recoveryMiddleware,
-		middleware.EnforceJSON)
+		httpmiddleware.EnforceJSON)
 
 	webServer := webserver.New(
 		webserver.WithHandler(apiHandler),
@@ -183,7 +185,14 @@ func run() error {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
 
-	auth.InitializeAuthServer(grpcServer.Server(), db)
+	userService := user.NewService(user.NewSQLRepository(db))
+
+	authService := service.NewAuthService()
+	authUseCase := usecase.NewAuthUseCase(authService, userService)
+
+	handler.Register(muxHandler, webServerLogger, authUseCase)
+
+	auth.InitializeAuthServer(grpcServer.Server(), db, authUseCase)
 
 	select {
 	case err = <-errCh:

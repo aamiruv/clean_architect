@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository"
-	"github.com/AmirMirzayi/clean_architecture/internal/user/domain"
+	"github.com/amirzayi/clean_architec/internal/user/adapter/repository"
+	"github.com/amirzayi/clean_architec/internal/user/domain"
 )
 
 var _ repository.Repository = (*userInMemoryRepository)(nil)

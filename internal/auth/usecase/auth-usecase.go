@@ -4,9 +4,9 @@ package usecase
 import (
 	"context"
 
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/domain"
-	userDomain "github.com/AmirMirzayi/clean_architecture/internal/user/domain"
-	"github.com/AmirMirzayi/clean_architecture/internal/user/service"
+	"github.com/amirzayi/clean_architec/internal/auth/domain"
+	userDomain "github.com/amirzayi/clean_architec/internal/user/domain"
+	"github.com/amirzayi/clean_architec/internal/user/service"
 )
 
 type AuthService interface {

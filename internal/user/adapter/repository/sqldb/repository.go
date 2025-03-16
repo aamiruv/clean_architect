@@ -5,8 +5,8 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository"
-	"github.com/AmirMirzayi/clean_architecture/internal/user/domain"
+	"github.com/amirzayi/clean_architec/internal/user/adapter/repository"
+	"github.com/amirzayi/clean_architec/internal/user/domain"
 )
 
 var _ repository.Repository = userSQLRepository{}

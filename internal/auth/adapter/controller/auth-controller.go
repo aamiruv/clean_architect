@@ -4,8 +4,10 @@ package controller
 import (
 	"context"
 
-	"github.com/AmirMirzayi/clean_architecture/api/proto/authpb"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/domain"
+	"github.com/amirzayi/clean_architec/api/proto/authpb"
+	"github.com/amirzayi/clean_architec/internal/auth/domain"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -18,8 +20,8 @@ type AuthHandler struct {
 	useCase AuthUseCase
 }
 
-func NewAuthHandler(authUseCase AuthUseCase) AuthHandler {
-	return AuthHandler{useCase: authUseCase}
+func NewAuthGRPCHandler(authUseCase AuthUseCase) *AuthHandler {
+	return &AuthHandler{useCase: authUseCase}
 }
 
 func (h AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest) (*emptypb.Empty, error) {
@@ -29,7 +31,7 @@ func (h AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest) 
 		Password:    req.GetPassword(),
 	}
 	if err := h.useCase.Register(ctx, auth); err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to register: %v", err)
 	}
 	return &emptypb.Empty{}, nil
 }

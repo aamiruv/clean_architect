@@ -4,7 +4,7 @@ package repository
 import (
 	"context"
 
-	"github.com/AmirMirzayi/clean_architecture/internal/user/domain"
+	"github.com/amirzayi/clean_architec/internal/user/domain"
 )
 
 type Repository interface {

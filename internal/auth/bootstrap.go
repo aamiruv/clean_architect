@@ -5,21 +5,14 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/AmirMirzayi/clean_architecture/api/proto/authpb"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/adapter/controller"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/service"
-	"github.com/AmirMirzayi/clean_architecture/internal/auth/usecase"
-	"github.com/AmirMirzayi/clean_architecture/internal/user"
+	"github.com/amirzayi/clean_architec/api/proto/authpb"
+	"github.com/amirzayi/clean_architec/internal/auth/adapter/controller"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 )
 
-func InitializeAuthServer(server *grpc.Server, db *sql.DB) {
-	userService := user.NewService(user.NewSQLRepository(db))
-
-	authService := service.NewAuthService()
-	authUseCase := usecase.NewAuthUseCase(authService, userService)
-	accountHandler := controller.NewAuthHandler(authUseCase)
+func InitializeAuthServer(server *grpc.Server, db *sql.DB, authUseCase controller.AuthUseCase) {
+	accountHandler := controller.NewAuthGRPCHandler(authUseCase)
 	authpb.RegisterAuthServiceServer(server, accountHandler)
 }
 

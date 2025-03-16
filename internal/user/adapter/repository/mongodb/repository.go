@@ -3,10 +3,10 @@ package mongodb
 import (
 	"context"
 
-	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository"
+	"github.com/amirzayi/clean_architec/internal/user/adapter/repository"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/AmirMirzayi/clean_architecture/internal/user/domain"
+	"github.com/amirzayi/clean_architec/internal/user/domain"
 )
 
 var _ repository.Repository = mongoRepository{}

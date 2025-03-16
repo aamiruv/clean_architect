@@ -1,6 +1,8 @@
-package middleware
+package appmiddleware
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // SuperAdminRole will check request for authorization header
 // and returns error if not found

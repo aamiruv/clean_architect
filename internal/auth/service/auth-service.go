@@ -16,7 +16,7 @@ func NewAuthService() AuthService {
 func (s AuthService) HashPassword(ctx context.Context, pwd string) (string, error) {
 	password, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("error hashing password: %v", err)
+		return "", fmt.Errorf("failed to hash password: %v", err)
 	}
 	return string(password), nil
 }

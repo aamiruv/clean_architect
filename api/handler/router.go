@@ -4,15 +4,17 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/AmirMirzayi/clean_architecture/pkg/middleware"
-	"github.com/AmirMirzayi/clean_architecture/pkg/router"
+	v2 "github.com/amirzayi/clean_architec/api/handler/v2"
+	"github.com/amirzayi/clean_architec/internal/auth/adapter/controller"
+	"github.com/amirzayi/clean_architec/pkg/httpmiddleware"
+	"github.com/amirzayi/clean_architec/pkg/router"
 )
 
-func Register(mux *http.ServeMux, logger *log.Logger) {
+func Register(mux *http.ServeMux, logger *log.Logger, authUseCase controller.AuthUseCase) {
 	lr := func(next http.Handler) http.Handler {
-		return middleware.LogRequest(next, logger)
+		return httpmiddleware.LogRequestBody(next, logger)
 	}
 
 	router.BindRoutesToMux(mux,
-		userV2Routes(lr))
+		v2.UserRoutes(lr, authUseCase))
 }

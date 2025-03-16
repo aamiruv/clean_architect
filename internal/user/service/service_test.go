@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/AmirMirzayi/clean_architecture/internal/user"
-	"github.com/AmirMirzayi/clean_architecture/internal/user/domain"
+	"github.com/amirzayi/clean_architec/internal/user"
+	"github.com/amirzayi/clean_architec/internal/user/domain"
 )
 
 func TestCreateUser(t *testing.T) {

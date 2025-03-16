@@ -6,11 +6,11 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository"
-	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository/memory"
-	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository/mongodb"
-	"github.com/AmirMirzayi/clean_architecture/internal/user/adapter/repository/sqldb"
-	"github.com/AmirMirzayi/clean_architecture/internal/user/service"
+	"github.com/amirzayi/clean_architec/internal/user/adapter/repository"
+	"github.com/amirzayi/clean_architec/internal/user/adapter/repository/memory"
+	"github.com/amirzayi/clean_architec/internal/user/adapter/repository/mongodb"
+	"github.com/amirzayi/clean_architec/internal/user/adapter/repository/sqldb"
+	"github.com/amirzayi/clean_architec/internal/user/service"
 )
 
 func NewService(repo repository.Repository) service.UserService {

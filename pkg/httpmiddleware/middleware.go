@@ -1,5 +1,5 @@
-// Package middleware contains http middlewares which acts before request get into the server handler
-package middleware
+// Package httpmiddleware contains http middlewares which acts before request get into the server handler
+package httpmiddleware
 
 import (
 	"bytes"
@@ -78,7 +78,7 @@ func EnforceJSON(next http.Handler) http.Handler {
 	})
 }
 
-func LogRequest(next http.Handler, logger *log.Logger) http.Handler {
+func LogRequestBody(next http.Handler, logger *log.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var rb any
 		b, err := io.ReadAll(r.Body)
