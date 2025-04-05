@@ -33,8 +33,7 @@ import (
 	"github.com/amirzayi/clean_architect/pkg/config"
 	"github.com/amirzayi/clean_architect/pkg/hash"
 	"github.com/amirzayi/clean_architect/pkg/interceptor"
-	"github.com/amirzayi/clean_architect/pkg/logger/filelog"
-	"github.com/amirzayi/clean_architect/pkg/logger/remotelog"
+	"github.com/amirzayi/clean_architect/pkg/logger"
 	"github.com/amirzayi/clean_architect/pkg/server/grpcserver"
 	"github.com/amirzayi/clean_architect/pkg/server/webserver"
 )
@@ -71,20 +70,20 @@ func run() error {
 		logWriters = append(logWriters, os.Stdout)
 	}
 	if cfg.Logger().Directory() != "" {
-		fileLogger := filelog.New(filelog.LoggerType(cfg.Logger().FileCreationMode()), cfg.Logger().Directory())
+		fileLogger := logger.NewFileLogger(logger.FileLoggerType(cfg.Logger().FileCreationMode()), cfg.Logger().Directory())
 		logWriters = append(logWriters, fileLogger)
 	}
 	if cfg.Logger().RemoteURL() != "" {
-		remoteLogger := remotelog.New(cfg.Logger().RemoteURL())
+		remoteLogger := logger.NewRemoteLogger(cfg.Logger().RemoteURL())
 		logWriters = append(logWriters, remoteLogger)
 	}
 
 	logWriter := io.MultiWriter(logWriters...)
-	logger := slog.New(slog.NewJSONHandler(logWriter, &slog.HandlerOptions{AddSource: true, Level: slog.Level(cfg.Logger().Level())}))
-	// no need to pass logger to another part of application
-	slog.SetDefault(logger)
+	defaultLogger := slog.New(slog.NewJSONHandler(logWriter, &slog.HandlerOptions{AddSource: true, Level: slog.Level(cfg.Logger().Level())}))
+	// set as global logger, no need to pass logger to another part of application
+	slog.SetDefault(defaultLogger)
 
-	webServerLogFile := filelog.New(filelog.LogHourly, "weblog")
+	webServerLogFile := logger.NewFileLogger(logger.FileLogHourly, "weblog")
 	webServerLogWriter := io.MultiWriter(os.Stdout, webServerLogFile)
 	webServerLogger := slog.NewLogLogger(slog.NewJSONHandler(webServerLogWriter, nil), slog.LevelInfo)
 
@@ -165,7 +164,7 @@ func run() error {
 			errCh <- fmt.Errorf("failed to run web server: %w", err)
 		}
 	}()
-	logger.Info(fmt.Sprintf("web server initialized on %s", cfg.Web().Address()))
+	log.Printf("web server initialized on %s", cfg.Web().Address())
 
 	go func() {
 		defer wg.Done()
@@ -173,7 +172,7 @@ func run() error {
 			errCh <- fmt.Errorf("failed to run grpc server: %w", err)
 		}
 	}()
-	logger.Info(fmt.Sprintf("grpc server initialized on %s", cfg.GRPC().Address()))
+	log.Printf("grpc server initialized on %s", cfg.GRPC().Address())
 
 	exitCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
 
@@ -182,7 +181,7 @@ func run() error {
 		stop()
 
 	case <-exitCtx.Done():
-		logger.Info("received terminate signal")
+		log.Println("received terminate signal")
 		go func() {
 			defer wg.Done()
 			grpcServer.GracefulShutdown()

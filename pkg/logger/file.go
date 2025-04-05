@@ -1,5 +1,5 @@
 // Pacakge filelog provides store logged messages into file(s).
-package filelog
+package logger
 
 import (
 	"fmt"
@@ -9,30 +9,28 @@ import (
 	"time"
 )
 
-type LoggerType uint8
+type FileLoggerType uint8
 
 const (
-	logNone LoggerType = iota
-	LogMono
-	LogHourly
-	LogDaily
+	logNone FileLoggerType = iota
+	FileLogMono
+	FileLogHourly
+	FileLogDaily
 )
 
-var _ io.Writer = logger{}
-
-type logger struct {
-	loggerType LoggerType
+type fileLogger struct {
+	loggerType FileLoggerType
 	directory  string
 }
 
-func New(loggerType LoggerType, directory string) logger {
-	return logger{
+func NewFileLogger(loggerType FileLoggerType, directory string) io.Writer {
+	return &fileLogger{
 		loggerType: loggerType,
 		directory:  directory,
 	}
 }
 
-func (l logger) Write(p []byte) (int, error) {
+func (l *fileLogger) Write(p []byte) (int, error) {
 	var logFileName string
 
 	y, m, d := time.Now().Date()
@@ -40,19 +38,19 @@ func (l logger) Write(p []byte) (int, error) {
 	switch l.loggerType {
 	case logNone:
 		return 0, nil
-	case LogHourly:
+	case FileLogHourly:
 		h := time.Now().Hour()
 		logFileName = fmt.Sprintf("%s/%d/%d/%d/%d.log", l.directory, y, m, d, h)
-	case LogDaily:
+	case FileLogDaily:
 		logFileName = fmt.Sprintf("%s/%d/%d/%d.log", l.directory, y, m, d)
-	case LogMono:
+	case FileLogMono:
 		logFileName = fmt.Sprintf("%s/log.log", l.directory)
 
 	default:
 		return 0, fmt.Errorf("invalid logger type")
 	}
 
-	file, err := openLogFile(logFileName)
+	file, err := l.openLogFile(logFileName)
 	if err != nil {
 		return 0, err
 	}
@@ -62,7 +60,7 @@ func (l logger) Write(p []byte) (int, error) {
 	return file.Write(p)
 }
 
-func openLogFile(filePath string) (*os.File, error) {
+func (l *fileLogger) openLogFile(filePath string) (*os.File, error) {
 	if _, err := os.Stat(filepath.Dir(filePath)); os.IsNotExist(err) {
 		if err = os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
 			return nil, err
