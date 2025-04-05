@@ -1,4 +1,3 @@
-// Pacakge filelog provides store logged messages into file(s).
 package logger
 
 import (

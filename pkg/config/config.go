@@ -14,29 +14,29 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// appConfig holds the configurations for the entire application, including
+// AppConfig holds the configurations for the entire application, including
 // db, web server, and grpc server configurations.
 // It has no Exported fields to encapsulate configurations.
-type appConfig struct {
+type AppConfig struct {
 	db     db
 	web    web
 	grpc   grpc
 	logger logger
 }
 
-func (app appConfig) DB() db {
+func (app AppConfig) DB() db {
 	return app.db
 }
 
-func (app appConfig) Web() web {
+func (app AppConfig) Web() web {
 	return app.web
 }
 
-func (app appConfig) GRPC() grpc {
+func (app AppConfig) GRPC() grpc {
 	return app.grpc
 }
 
-func (app appConfig) Logger() logger {
+func (app AppConfig) Logger() logger {
 	return app.logger
 }
 
@@ -79,8 +79,8 @@ type tmpConfig struct {
 	} `json:"logger" yaml:"logger" toml:"logger"`
 }
 
-func (cfg tmpConfig) ToAppConfig() appConfig {
-	return appConfig{
+func (cfg tmpConfig) ToAppConfig() AppConfig {
+	return AppConfig{
 		db: db{
 			driver:   cfg.DB.Driver,
 			ip:       cfg.DB.IP,
@@ -117,11 +117,11 @@ func (cfg tmpConfig) ToAppConfig() appConfig {
 	}
 }
 
-// LoadConfig will return appConfig which that values are filled by given config file's address.
-func LoadConfig(fileAddress string) (appConfig, error) {
+// LoadConfig will return AppConfig which that values are filled by given config file's address.
+func LoadConfig(fileAddress string) (AppConfig, error) {
 	bytes, err := os.ReadFile(fileAddress)
 	if err != nil {
-		return appConfig{}, err
+		return AppConfig{}, err
 	}
 
 	var tmpCfg tmpConfig
@@ -138,14 +138,14 @@ func LoadConfig(fileAddress string) (appConfig, error) {
 	}
 
 	if err != nil {
-		return appConfig{}, err
+		return AppConfig{}, err
 	}
 
 	return tmpCfg.ToAppConfig(), nil
 }
 
 // LoadConfigOrDefault will do LoadConfig. if loading had problem, then returns default values config.
-func LoadConfigOrDefault(fileAddress string) (appConfig, error) {
+func LoadConfigOrDefault(fileAddress string) (AppConfig, error) {
 	cfg, err := LoadConfig(fileAddress)
 	if err == nil {
 		return cfg, nil

@@ -39,12 +39,6 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func run() error {
 	var configPath string
 	flag.StringVar(&configPath, "config", "config.json", "config file path, eg: -config=/path/to/file.json")
 	flag.Parse()
@@ -52,11 +46,17 @@ func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	cfg, err := config.LoadConfigOrDefault(configPath)
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
+	if err = run(ctx, cfg); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run(ctx context.Context, cfg config.AppConfig) error {
 	db, err := sql.Open(cfg.DB().Driver(), cfg.DB().ConnectionString())
 	if err != nil {
 		return fmt.Errorf("failed to open database connection: %w", err)

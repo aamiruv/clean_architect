@@ -1,4 +1,4 @@
-// Pacakge remotelog provides logged messages into files.
+// Package logger provides logged messages into files and remote http logger.
 package logger
 
 import (
