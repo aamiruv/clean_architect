@@ -7,13 +7,11 @@ import (
 	"net/http"
 )
 
-var _ io.Writer = logger{}
-
 type logger struct {
 	url string
 }
 
-func New(url string) logger {
+func New(url string) io.Writer {
 	return logger{url: url}
 }
 

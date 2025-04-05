@@ -12,22 +12,26 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func Recovery(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler, logger *log.Logger) (_ any, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Printf("panic recovered: %v, in: %s", r, info.FullMethod)
-			err = status.Error(codes.Internal, "internal server error")
-		}
-	}()
-	return handler(ctx, req)
+func Recovery(logger *log.Logger) func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ any, err error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Printf("panic recovered: %v, in: %s", r, info.FullMethod)
+				err = status.Error(codes.Internal, "internal server error")
+			}
+		}()
+		return handler(ctx, req)
+	}
 }
 
-func ResponseTimeMeter(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler, logger *log.Logger) (resp any, err error) {
-	now := time.Now()
-	defer func() {
-		logger.Printf("completed in: %v", time.Since(now))
-	}()
-	return handler(ctx, req)
+func ResponseTimeMeter(logger *log.Logger) func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
+		now := time.Now()
+		defer func() {
+			logger.Printf("completed in: %v", time.Since(now))
+		}()
+		return handler(ctx, req)
+	}
 }
 
 // DenyUnauthorizedClient will check request for authorization metadata

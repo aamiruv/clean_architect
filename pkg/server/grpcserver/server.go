@@ -33,9 +33,7 @@ func (s server) Run() error {
 
 func (s server) GracefulShutdown() {
 	s.grpcServer.GracefulStop()
-	time.AfterFunc(s.shutdownTimeout, func() {
-		s.grpcServer.Stop()
-	})
+	time.AfterFunc(s.shutdownTimeout, s.grpcServer.Stop)
 }
 
 func (s server) Server() *grpc.Server {

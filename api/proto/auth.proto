@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package authpb;
 
-option go_package = "github.com/amirzayi/clean_architec/api/proto/authpb";
+option go_package = "github.com/amirzayi/clean_architect/api/proto/authpb";
 
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";

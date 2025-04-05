@@ -8,7 +8,7 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-RUN go build -o web_server ./cmd/web
+RUN go build -o web_server ./cmd/app
 
 FROM alpine
 
