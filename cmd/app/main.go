@@ -139,7 +139,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	)
 
 	if cfg.GRPC().HasReflection() {
-		reflection.Register(grpcServer.Server())
+		reflection.Register(grpcServer)
 	}
 
 	// todo: configurable tls on grpc
@@ -147,61 +147,59 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	delivery.SetupGRPC(grpcServer.Server(), services)
+	delivery.SetupGRPC(grpcServer.Server, services)
 
 	if err = delivery.SetupGRPCGateway(ctx, cfg.GRPC().Address(), gwMux, grpcDialOptions...); err != nil {
 		return err
 	}
 
-	errCh := make(chan error, 4)
+	exitCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
+	defer stop()
 
-	wg := sync.WaitGroup{}
-	wg.Add(5)
+	errCh := make(chan error, 3)
 
 	go func() {
-		defer wg.Done()
-		if err = webServer.Run(); !errors.Is(err, http.ErrServerClosed) {
+		if err = webServer.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("failed to run web server: %w", err)
 		}
 	}()
 	log.Printf("web server initialized on %s", cfg.Web().Address())
 
 	go func() {
-		defer wg.Done()
 		if err = grpcServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to run grpc server: %w", err)
 		}
 	}()
 	log.Printf("grpc server initialized on %s", cfg.GRPC().Address())
 
-	exitCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
-
 	select {
 	case err = <-errCh:
-		stop()
 
 	case <-exitCtx.Done():
 		log.Println("received terminate signal")
-		go func() {
-			defer wg.Done()
-			grpcServer.GracefulShutdown()
-		}()
-		go func() {
-			defer wg.Done()
-			errCh <- webServer.GracefulShutdown()
-		}()
-		go func() {
-			defer wg.Done()
-			errCh <- db.Close()
-		}()
 	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		grpcServer.GracefulShutdown()
+	}()
+	go func() {
+		defer wg.Done()
+		errCh <- webServer.GracefulShutdown()
+	}()
+	go func() {
+		defer wg.Done()
+		errCh <- db.Close()
+	}()
 
 	wg.Wait()
 	close(errCh)
 
-	var errs error
-	for err = range errCh {
-		errs = errors.Join(err)
+	for shutdownError := range errCh {
+		err = errors.Join(err, shutdownError)
 	}
-	return errs
+	return err
 }

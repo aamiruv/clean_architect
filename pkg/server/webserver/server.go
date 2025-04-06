@@ -42,8 +42,7 @@ func (s *server) GracefulShutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
 	if err := s.httpServer.Shutdown(ctx); err != nil {
-		err2 := s.httpServer.Close()
-		if err2 != nil {
+		if err2 := s.httpServer.Close(); err2 != nil {
 			return errors.Join(err, err2)
 		}
 		return err

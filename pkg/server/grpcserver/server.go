@@ -9,7 +9,7 @@ import (
 )
 
 type server struct {
-	grpcServer      *grpc.Server
+	*grpc.Server
 	bindingAddress  string
 	shutdownTimeout time.Duration
 }
@@ -17,25 +17,21 @@ type server struct {
 func New(bindingAddress string, shutdownTimeout time.Duration, options ...grpc.ServerOption) server {
 	s := grpc.NewServer(options...)
 	return server{
-		grpcServer:      s,
-		bindingAddress:  bindingAddress,
-		shutdownTimeout: shutdownTimeout,
+		s,
+		bindingAddress,
+		shutdownTimeout,
 	}
 }
 
-func (s server) Run() error {
+func (s *server) Run() error {
 	ls, err := net.Listen("tcp", s.bindingAddress)
 	if err != nil {
 		return err
 	}
-	return s.grpcServer.Serve(ls)
+	return s.Serve(ls)
 }
 
-func (s server) GracefulShutdown() {
-	s.grpcServer.GracefulStop()
-	time.AfterFunc(s.shutdownTimeout, s.grpcServer.Stop)
-}
-
-func (s server) Server() *grpc.Server {
-	return s.grpcServer
+func (s *server) GracefulShutdown() {
+	s.GracefulStop()
+	time.AfterFunc(s.shutdownTimeout, s.Stop)
 }
