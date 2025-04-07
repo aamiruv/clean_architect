@@ -5,8 +5,8 @@ import (
 )
 
 type Claims struct {
-	UserID   uuid.UUID
-	UserRole string
+	UserID   uuid.UUID `json:"uid"`
+	UserRole string    `json:"role"`
 }
 
 type Manager interface {

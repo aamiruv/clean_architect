@@ -8,15 +8,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewJWT(t *testing.T) {
-	m := NewJWT("sample_key", time.Hour)
+func TestPaseto(t *testing.T) {
+	p := NewPaseto([]byte("YELLOW SUBMARINE, BLACK WIZARDRY"), 1*time.Hour)
 
 	id := uuid.New()
 	role := "Admin"
-	token, err := m.CreateToken(id, role)
+
+	token, err := p.CreateToken(id, role)
 	require.NoError(t, err)
 
-	claims, err := m.VerifyToken(token)
+	claims, err := p.VerifyToken(token)
 	require.NoError(t, err)
 
 	require.Equal(t, id, claims.UserID)

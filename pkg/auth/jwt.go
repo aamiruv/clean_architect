@@ -13,19 +13,21 @@ type jwtClaims struct {
 }
 
 type jwtManager struct {
-	key      string
-	duration time.Duration
+	signingMethod jwt.SigningMethod
+	key           []byte
+	duration      time.Duration
 }
 
-func NewJWT(key string, duration time.Duration) Manager {
+func NewJWT(signingMethod jwt.SigningMethod, key []byte, duration time.Duration) Manager {
 	return &jwtManager{
-		key:      key,
-		duration: duration,
+		signingMethod: signingMethod,
+		key:           key,
+		duration:      duration,
 	}
 }
 
 func (j *jwtManager) CreateToken(userID uuid.UUID, userRole string) (string, error) {
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtClaims{
+	token, err := jwt.NewWithClaims(j.signingMethod, jwtClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.duration)),
 		},
@@ -33,7 +35,7 @@ func (j *jwtManager) CreateToken(userID uuid.UUID, userRole string) (string, err
 			UserID:   userID,
 			UserRole: userRole,
 		},
-	}).SignedString([]byte(j.key))
+	}).SignedString(j.key)
 	if err != nil {
 		return "", err
 	}
@@ -43,7 +45,7 @@ func (j *jwtManager) CreateToken(userID uuid.UUID, userRole string) (string, err
 func (j *jwtManager) VerifyToken(token string) (Claims, error) {
 	var cc jwtClaims
 	t, err := jwt.ParseWithClaims(token, &cc, func(t *jwt.Token) (any, error) {
-		return []byte(j.key), nil
+		return j.key, nil
 	})
 	if err != nil {
 		return Claims{}, err
