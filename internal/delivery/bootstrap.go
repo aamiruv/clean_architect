@@ -12,10 +12,11 @@ import (
 	"github.com/amirzayi/clean_architect/api/http/handler"
 	"github.com/amirzayi/clean_architect/api/proto/authpb"
 	"github.com/amirzayi/clean_architect/internal/service"
+	"github.com/amirzayi/clean_architect/pkg/auth"
 )
 
-func SetupHTTPRouter(mux *http.ServeMux, logger *log.Logger, services *service.Services) {
-	handler.Register(mux, logger, services)
+func SetupHTTPRouter(mux *http.ServeMux, logger *log.Logger, services *service.Services, authManager auth.Manager) {
+	handler.Register(mux, logger, services, authManager)
 }
 
 func SetupGRPC(server *grpc.Server, services *service.Services) {

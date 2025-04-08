@@ -7,11 +7,18 @@ import (
 	"github.com/google/uuid"
 )
 
-type Status uint8
+type UserStatus uint8
 
 const (
-	New Status = iota + 1
-	Active
+	UsereStatusNew UserStatus = iota + 1
+	UserStatusActive
+)
+
+type UserRole string
+
+const (
+	UserRoleNormal UserRole = "User"
+	UserRoleAdmin  UserRole = "Admin"
 )
 
 type User struct {
@@ -20,6 +27,7 @@ type User struct {
 	PhoneNumber string
 	Email       string
 	Password    string
-	Status      Status
+	Status      UserStatus
+	Role        UserRole
 	CreatedAt   time.Time
 }

@@ -15,10 +15,12 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/amirzayi/rahjoo/middleware"
 	chim "github.com/go-chi/chi/v5/middleware"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -30,6 +32,7 @@ import (
 	"github.com/amirzayi/clean_architect/internal/delivery"
 	"github.com/amirzayi/clean_architect/internal/repository"
 	"github.com/amirzayi/clean_architect/internal/service"
+	"github.com/amirzayi/clean_architect/pkg/auth"
 	"github.com/amirzayi/clean_architect/pkg/config"
 	"github.com/amirzayi/clean_architect/pkg/hash"
 	"github.com/amirzayi/clean_architect/pkg/interceptor"
@@ -95,9 +98,13 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 
 	repos := repository.NewSQLRepositories(db)
 
+	// todo: configurable token lifetime
+	authManager := auth.NewJWT(jwt.SigningMethodES384, []byte(cfg.Auth().Secret()), time.Hour)
+
 	services := service.NewServices(&service.Dependencies{
 		Repositories: repos,
 		Hasher:       hash.NewBcryptHasher(bcrypt.DefaultCost),
+		AuthManager:  authManager,
 	})
 
 	gwMux := runtime.NewServeMux()
@@ -125,7 +132,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 		),
 	)
 
-	delivery.SetupHTTPRouter(muxHandler, webServerLogger, services)
+	delivery.SetupHTTPRouter(muxHandler, webServerLogger, services, authManager)
 
 	grpcServer := grpcserver.New(
 		cfg.GRPC().Address(),

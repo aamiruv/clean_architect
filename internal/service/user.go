@@ -27,7 +27,7 @@ func NewUserService(db repository.User) User {
 
 func (u *user) Create(ctx context.Context, user domain.User) (domain.User, error) {
 	user.ID = uuid.New()
-	user.Status = domain.New
+	user.Status = domain.UsereStatusNew
 	user.CreatedAt = time.Now()
 
 	if err := u.db.Create(ctx, user); err != nil {

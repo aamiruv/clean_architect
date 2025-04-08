@@ -10,7 +10,7 @@ import (
 )
 
 func TestJWT(t *testing.T) {
-	m := NewJWT(jwt.SigningMethodHS512, []byte("sample_key"), 20*time.Hour)
+	m := NewJWT(jwt.SigningMethodHS512, []byte("sample_key"), time.Hour)
 
 	id := uuid.New()
 	role := "Admin"
@@ -22,4 +22,19 @@ func TestJWT(t *testing.T) {
 
 	require.Equal(t, id, claims.UserID)
 	require.Equal(t, role, claims.UserRole)
+}
+
+func TestJWTValidation(t *testing.T) {
+	m := NewJWT(jwt.SigningMethodHS512, []byte("sample_key"), -time.Hour)
+
+	id := uuid.New()
+	role := "Admin"
+	token, err := m.CreateToken(id, role)
+	require.NoError(t, err)
+
+	claims, err := m.VerifyToken(token)
+	require.ErrorIs(t, err, jwt.ErrTokenExpired)
+
+	require.Equal(t, uuid.Nil, claims.UserID)
+	require.Equal(t, "", claims.UserRole)
 }

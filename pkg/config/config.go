@@ -22,6 +22,7 @@ type AppConfig struct {
 	web    web
 	grpc   grpc
 	logger logger
+	auth   auth
 }
 
 func (app AppConfig) DB() db {
@@ -38,6 +39,10 @@ func (app AppConfig) GRPC() grpc {
 
 func (app AppConfig) Logger() logger {
 	return app.logger
+}
+
+func (app AppConfig) Auth() auth {
+	return app.auth
 }
 
 // tmpConfig holds the configurations for the entire application, including
@@ -77,6 +82,9 @@ type tmpConfig struct {
 		RemoteURL        string `default:"" json:"remoteURL" yaml:"remoteURL" toml:"remoteURL"`
 		Console          bool   `default:"true" json:"console" yaml:"console" toml:"console"`
 	} `json:"logger" yaml:"logger" toml:"logger"`
+	Auth struct {
+		Secret string `default:"some_secret" json:"secret" yaml:"secret" toml:"secret"`
+	} `json:"auth" yaml:"auth" toml:"auth"`
 }
 
 func (cfg tmpConfig) ToAppConfig() AppConfig {
@@ -113,6 +121,9 @@ func (cfg tmpConfig) ToAppConfig() AppConfig {
 			fileCreationMode: cfg.Logger.FileCreationMode,
 			remoteURL:        cfg.Logger.RemoteURL,
 			console:          cfg.Logger.Console,
+		},
+		auth: auth{
+			secret: cfg.Auth.Secret,
 		},
 	}
 }

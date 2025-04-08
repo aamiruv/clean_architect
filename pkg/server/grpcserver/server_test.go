@@ -6,11 +6,11 @@ import (
 )
 
 func TestRunGrpcServer(t *testing.T) {
-	server := New("localhost:12345")
+	server := New("localhost:12345", time.Second)
 	go func() {
 		if err := server.Run(); err != nil {
 			t.Fail()
 		}
 	}()
-	server.GracefulShutdown(time.Second)
+	server.GracefulShutdown()
 }

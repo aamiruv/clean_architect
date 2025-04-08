@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	appmiddleware "github.com/amirzayi/clean_architect/api/http/middleware"
+	"github.com/amirzayi/clean_architect/internal/domain"
 	"github.com/amirzayi/clean_architect/internal/service"
+	"github.com/amirzayi/clean_architect/pkg/auth"
 	"github.com/amirzayi/rahjoo"
 	"github.com/amirzayi/rahjoo/middleware"
 )
@@ -13,7 +15,7 @@ type userRouter struct {
 	userService service.User
 }
 
-func UserRoutes(logMiddleware middleware.Middleware, userService service.User) rahjoo.Route {
+func UserRoutes(logMiddleware middleware.Middleware, userService service.User, authManager auth.Manager) rahjoo.Route {
 	user := &userRouter{userService: userService}
 
 	return rahjoo.NewGroup(rahjoo.GroupRoute{
@@ -28,7 +30,7 @@ func UserRoutes(logMiddleware middleware.Middleware, userService service.User) r
 				http.MethodPut:    rahjoo.NewHandler(user.update),
 			},
 		},
-	}, appmiddleware.SuperAdminRole)
+	}, appmiddleware.MustHaveAtLeastOneRole(authManager, []domain.UserRole{domain.UserRoleAdmin}))
 }
 
 func (u *userRouter) list(w http.ResponseWriter, r *http.Request) {

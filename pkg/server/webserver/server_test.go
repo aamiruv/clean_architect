@@ -15,7 +15,8 @@ func TestRunServer(t *testing.T) {
 		fullTestingRoute        = "http://" + mockedHttpServerAddress + testingRoute
 	)
 
-	srv := New(WithAddress(mockedHttpServerAddress))
+	mux := http.NewServeMux()
+	srv := New(WithAddress(mockedHttpServerAddress), WithHandler(mux))
 
 	t.Run("test run http server", func(t *testing.T) {
 		go func() {
@@ -23,7 +24,7 @@ func TestRunServer(t *testing.T) {
 				t.Fail()
 			}
 		}()
-		srv.MuxHandler().HandleFunc(testingRoute, func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc(testingRoute, func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
 	})
@@ -36,7 +37,7 @@ func TestRunServer(t *testing.T) {
 	})
 
 	t.Run("test shut down gracefully http server", func(t *testing.T) {
-		if err := srv.GracefulShutdown(10 * time.Second); err != nil {
+		if err := srv.GracefulShutdown(); err != nil {
 			t.Fail()
 		}
 	})

@@ -42,5 +42,4 @@ func (db db) ConnectionString() string {
 	default:
 		return ""
 	}
-
 }
