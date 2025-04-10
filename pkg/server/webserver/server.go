@@ -13,10 +13,9 @@ type server struct {
 	shutdownTimeout time.Duration
 }
 
-func New(options ...optionServerFunc) server {
-	mux := http.NewServeMux()
+func New(handler http.Handler, options ...optionServerFunc) server {
 	srv := &http.Server{
-		Handler:           mux,
+		Handler:           handler,
 		Addr:              address,
 		MaxHeaderBytes:    maxHeaderBytes,
 		IdleTimeout:       idleTimeout,

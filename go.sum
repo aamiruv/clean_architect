@@ -8,8 +8,8 @@ github.com/aead/chacha20poly1305 v0.0.0-20170617001512-233f39982aeb h1:6Z/wqhPFZ
 github.com/aead/chacha20poly1305 v0.0.0-20170617001512-233f39982aeb/go.mod h1:UzH9IX1MMqOcwhoNOIjmTQeAxrFgzs50j4golQtXXxU=
 github.com/aead/poly1305 v0.0.0-20180717145839-3fee0db0b635 h1:52m0LGchQBBVqJRyYYufQuIbVqRawmubW3OFGqK1ekw=
 github.com/aead/poly1305 v0.0.0-20180717145839-3fee0db0b635/go.mod h1:lmLxL+FV291OopO93Bwf9fQLQeLyt33VJRUg5VJ30us=
-github.com/amirzayi/rahjoo v1.1.2 h1:6dh7O5l7TdcD1qSHPVMRfEifsrMK/FD0fNPGjxXQxOk=
-github.com/amirzayi/rahjoo v1.1.2/go.mod h1:Qyw4kOI9/KJWLpEqdXGYHIJyvvwBA9LVrs8sR3uxUzM=
+github.com/amirzayi/rahjoo v1.2.1 h1:XLgg2LO6R2+n9qgsG8DeEg59OxOtiYP6hiMlcT2k5+I=
+github.com/amirzayi/rahjoo v1.2.1/go.mod h1:Zx+6D6Hpr0R1iNyqJW32Y71UeB0gc0CnfQXYvXZ4rQE=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creasty/defaults v1.8.0 h1:z27FJxCAa0JKt3utc0sCImAEb+spPucmKoOdLHvHYKk=
 github.com/creasty/defaults v1.8.0/go.mod h1:iGzKe6pbEHnpMPtfDXZEr0NVxWnPTjb1bbDy08fPzYM=

@@ -16,7 +16,7 @@ func TestRunServer(t *testing.T) {
 	)
 
 	mux := http.NewServeMux()
-	srv := New(WithAddress(mockedHttpServerAddress), WithHandler(mux))
+	srv := New(mux, WithAddress(mockedHttpServerAddress))
 
 	t.Run("test run http server", func(t *testing.T) {
 		go func() {

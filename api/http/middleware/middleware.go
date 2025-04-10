@@ -42,7 +42,6 @@ func MustHaveAtLeastOneRole(authManager auth.Manager, roles []domain.UserRole) f
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
-
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -58,19 +57,6 @@ func MeterResponseTime(logger *log.Logger) func(next http.Handler) http.Handler 
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// DenyUnauthorizedClient will check request for authorization header
-// and returns error if not found
-func DenyUnauthorizedClient(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// fixme: validate authorization token
-		if r.Header.Get("Authorization") == "" {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func LogRequestBody(logger *log.Logger) func(next http.Handler) http.Handler {

@@ -17,30 +17,30 @@ type userRouter struct {
 
 func UserRoutes(logMiddleware middleware.Middleware, userService service.User, authManager auth.Manager) rahjoo.Route {
 	user := &userRouter{userService: userService}
-
-	return rahjoo.NewGroup(rahjoo.GroupRoute{
-		"/v2/users": {
-			"": {
-				http.MethodGet:  rahjoo.NewHandler(user.list),
-				http.MethodPost: rahjoo.NewHandler(user.create),
-			},
-			"/{id}": {
-				http.MethodGet:    rahjoo.NewHandler(user.get),
-				http.MethodDelete: rahjoo.NewHandler(user.delete, logMiddleware),
-				http.MethodPut:    rahjoo.NewHandler(user.update),
-			},
+	return rahjoo.NewGroupRoute("/v2/users", rahjoo.Route{
+		"": {
+			http.MethodGet:  rahjoo.NewHandler(user.list),
+			http.MethodPost: rahjoo.NewHandler(user.create),
 		},
-	}, appmiddleware.MustHaveAtLeastOneRole(authManager, []domain.UserRole{domain.UserRoleAdmin}))
+		"/{id}": {
+			http.MethodGet:    rahjoo.NewHandler(user.get),
+			http.MethodDelete: rahjoo.NewHandler(user.delete, logMiddleware),
+			http.MethodPut:    rahjoo.NewHandler(user.update),
+		},
+	}.SetMiddleware(
+		appmiddleware.MustHaveAtLeastOneRole(authManager, []domain.UserRole{domain.UserRoleAdmin}),
+	),
+	)
 }
 
 func (u *userRouter) list(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusBadGateway)
 }
 func (u *userRouter) create(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 func (u *userRouter) delete(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 func (u *userRouter) update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)

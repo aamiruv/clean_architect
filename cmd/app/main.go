@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/amirzayi/rahjoo/middleware"
+	"github.com/amirzayi/rahjoo/middleware/cors"
 	chim "github.com/go-chi/chi/v5/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-jwt/jwt/v5"
@@ -113,14 +114,14 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	muxHandler.Handle("/", gwMux)
 
 	apiHandler := middleware.Chain(muxHandler,
+		cors.CORSHandler(),
 		chim.Recoverer,
 		middleware.EnforceJSON,
 		chim.RealIP,
 		chim.Logger,
 	)
 
-	webServer := webserver.New(
-		webserver.WithHandler(apiHandler),
+	webServer := webserver.New(apiHandler,
 		webserver.WithAddress(cfg.Web().Address()),
 		webserver.WithLogger(webServerLogger),
 		webserver.WithTimeouts(

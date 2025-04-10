@@ -2,18 +2,10 @@ package webserver
 
 import (
 	"log"
-	"net/http"
 	"time"
 )
 
 type optionServerFunc func(*server)
-
-// WithHandler set handler to server
-func WithHandler(handler http.Handler) optionServerFunc {
-	return func(s *server) {
-		s.httpServer.Handler = handler
-	}
-}
 
 // WithAddress set access address to server
 func WithAddress(address string) optionServerFunc {

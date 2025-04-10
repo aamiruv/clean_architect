@@ -83,7 +83,8 @@ type tmpConfig struct {
 		Console          bool   `default:"true" json:"console" yaml:"console" toml:"console"`
 	} `json:"logger" yaml:"logger" toml:"logger"`
 	Auth struct {
-		Secret string `default:"some_secret" json:"secret" yaml:"secret" toml:"secret"`
+		Secret   string `default:"some_secret" json:"secret" yaml:"secret" toml:"secret"`
+		LifeTime int    `default:"1" json:"lifeTime" yaml:"lifeTime" toml:"lifeTime"`
 	} `json:"auth" yaml:"auth" toml:"auth"`
 }
 
@@ -123,7 +124,8 @@ func (cfg tmpConfig) ToAppConfig() AppConfig {
 			console:          cfg.Logger.Console,
 		},
 		auth: auth{
-			secret: cfg.Auth.Secret,
+			secret:   cfg.Auth.Secret,
+			lifeTime: cfg.Auth.LifeTime,
 		},
 	}
 }

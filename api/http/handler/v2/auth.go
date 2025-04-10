@@ -17,11 +17,9 @@ type authRouter struct {
 func AuthRoutes(auth service.Auth) rahjoo.Route {
 	router := &authRouter{authService: auth}
 
-	return rahjoo.NewGroup(rahjoo.GroupRoute{
-		"/v2/auth": {
-			"/register": {
-				http.MethodPost: rahjoo.NewHandler(router.register),
-			},
+	return rahjoo.NewGroupRoute("/v2/auth", rahjoo.Route{
+		"/register": {
+			http.MethodPost: rahjoo.NewHandler(router.register),
 		},
 	}) // todo: add throttle middleware
 }
