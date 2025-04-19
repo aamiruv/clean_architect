@@ -23,6 +23,7 @@ type AppConfig struct {
 	grpc   grpc
 	logger logger
 	auth   auth
+	cache  cache
 }
 
 func (app AppConfig) DB() db {
@@ -43,6 +44,10 @@ func (app AppConfig) Logger() logger {
 
 func (app AppConfig) Auth() auth {
 	return app.auth
+}
+
+func (app AppConfig) Cache() cache {
+	return app.cache
 }
 
 // tmpConfig holds the configurations for the entire application, including
@@ -86,6 +91,12 @@ type tmpConfig struct {
 		Secret   string `default:"some_secret" json:"secret" yaml:"secret" toml:"secret"`
 		LifeTime int    `default:"1" json:"lifeTime" yaml:"lifeTime" toml:"lifeTime"`
 	} `json:"auth" yaml:"auth" toml:"auth"`
+	Cache struct {
+		Driver string `default:"inmemory" json:"driver" yaml:"driver" toml:"driver"`
+		IP     string `default:"127.0.0.1" json:"ip" yaml:"ip" toml:"ip"`
+		Port   uint   `default:"" json:"port" yaml:"port" toml:"port"`
+		Prefix string `default:"app" json:"prefix" yaml:"prefix" toml:"prefix"`
+	}
 }
 
 func (cfg tmpConfig) ToAppConfig() AppConfig {
@@ -126,6 +137,11 @@ func (cfg tmpConfig) ToAppConfig() AppConfig {
 		auth: auth{
 			secret:   cfg.Auth.Secret,
 			lifeTime: cfg.Auth.LifeTime,
+		},
+		cache: cache{
+			driver: cfg.Cache.Driver,
+			ip:     cfg.Cache.IP,
+			port:   cfg.Cache.Port,
 		},
 	}
 }

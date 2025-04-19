@@ -15,15 +15,16 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/amirzayi/rahjoo/middleware"
 	"github.com/amirzayi/rahjoo/middleware/cors"
+	"github.com/bradfitz/gomemcache/memcache"
 	chim "github.com/go-chi/chi/v5/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -34,6 +35,7 @@ import (
 	"github.com/amirzayi/clean_architect/internal/repository"
 	"github.com/amirzayi/clean_architect/internal/service"
 	"github.com/amirzayi/clean_architect/pkg/auth"
+	"github.com/amirzayi/clean_architect/pkg/cache"
 	"github.com/amirzayi/clean_architect/pkg/config"
 	"github.com/amirzayi/clean_architect/pkg/hash"
 	"github.com/amirzayi/clean_architect/pkg/interceptor"
@@ -60,7 +62,24 @@ func main() {
 	}
 }
 
+func CacheDriver(driver, address, prefix string) cache.Driver {
+	switch driver {
+	case "redis":
+		rdb := redis.NewClient(&redis.Options{Addr: address})
+		return cache.NewRedisDriver(rdb, prefix)
+
+	case "memcached":
+		mc := memcache.New(address)
+		return cache.NewMemCachedDriver(mc, prefix)
+
+	default:
+		return cache.NewInMemoryDriver()
+	}
+}
+
 func run(ctx context.Context, cfg config.AppConfig) error {
+	cacheDriver := CacheDriver(cfg.Cache().Driver(), cfg.Cache().ConnectionString(), cfg.Cache().Prefix())
+
 	db, err := sql.Open(cfg.DB().Driver(), cfg.DB().ConnectionString())
 	if err != nil {
 		return fmt.Errorf("failed to open database connection: %w", err)
@@ -100,12 +119,13 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	repos := repository.NewSQLRepositories(db)
 
 	// todo: configurable token lifetime
-	authManager := auth.NewJWT(jwt.SigningMethodES384, []byte(cfg.Auth().Secret()), time.Hour)
+	authManager := auth.NewJWT(jwt.SigningMethodES384, []byte(cfg.Auth().Secret()), cfg.Auth().LifeTime())
 
 	services := service.NewServices(&service.Dependencies{
 		Repositories: repos,
 		Hasher:       hash.NewBcryptHasher(bcrypt.DefaultCost),
 		AuthManager:  authManager,
+		Cache:        cacheDriver,
 	})
 
 	gwMux := runtime.NewServeMux()
@@ -182,6 +202,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 
 	select {
 	case err = <-errCh:
+		log.Println(err)
 
 	case <-exitCtx.Done():
 		log.Println("received terminate signal")

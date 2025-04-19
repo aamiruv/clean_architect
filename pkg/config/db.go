@@ -20,6 +20,7 @@ func (db db) Driver() string {
 }
 
 func (db db) ConnectionString() string {
+	// todo: add mongodb connection string
 	switch db.driver {
 	case "postgres":
 		return fmt.Sprintf("postgres://%s:%s@%s:%d/%s",

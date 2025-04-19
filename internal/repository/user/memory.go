@@ -12,6 +12,7 @@ import (
 
 var (
 	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrUserNotFound      = errors.New("user not found")
 )
 
 type userInMemoryRepo struct {
@@ -46,4 +47,17 @@ func (r *userInMemoryRepo) FindByID(_ context.Context, id uuid.UUID) (domain.Use
 		return domain.User{}, ErrUserAlreadyExists
 	}
 	return user, nil
+}
+
+func (r *userInMemoryRepo) GetByEmail(ctx context.Context, email string) (domain.User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, u := range r.store {
+		if u.Email == email {
+			return u, nil
+		}
+	}
+
+	return domain.User{}, ErrUserNotFound
 }
