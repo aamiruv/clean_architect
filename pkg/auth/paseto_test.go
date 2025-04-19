@@ -1,16 +1,17 @@
-package auth
+package auth_test
 
 import (
 	"testing"
 	"time"
 
+	"github.com/amirzayi/clean_architect/pkg/auth"
 	"github.com/google/uuid"
 	"github.com/o1egl/paseto"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPaseto(t *testing.T) {
-	p := NewPaseto([]byte("YELLOW SUBMARINE, BLACK WIZARDRY"), 1*time.Hour)
+	p := auth.NewPaseto([]byte("YELLOW SUBMARINE, BLACK WIZARDRY"), 1*time.Hour)
 
 	id := uuid.New()
 	role := "Admin"
@@ -26,7 +27,7 @@ func TestPaseto(t *testing.T) {
 }
 
 func TestPasetoValidation(t *testing.T) {
-	p := NewPaseto([]byte("YELLOW SUBMARINE, BLACK WIZARDRY"), -time.Hour)
+	p := auth.NewPaseto([]byte("YELLOW SUBMARINE, BLACK WIZARDRY"), -time.Hour)
 
 	id := uuid.New()
 	role := "Admin"
