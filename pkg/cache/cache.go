@@ -16,6 +16,7 @@ type Driver interface {
 	Set(ctx context.Context, key string, data []byte, ttl time.Duration) error
 	Get(ctx context.Context, key string) (data []byte, err error)
 	Delete(ctx context.Context, key string) error
+	Close() error
 }
 
 type Cache[T any] interface {

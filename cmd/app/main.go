@@ -184,7 +184,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	exitCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
 	defer stop()
 
-	errCh := make(chan error, 3)
+	errCh := make(chan error, 4)
 
 	go func() {
 		if err = webServer.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -209,7 +209,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(3)
+	wg.Add(4)
 
 	go func() {
 		defer wg.Done()
@@ -222,6 +222,10 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	go func() {
 		defer wg.Done()
 		errCh <- db.Close()
+	}()
+	go func() {
+		defer wg.Done()
+		errCh <- cacheDriver.Close()
 	}()
 
 	wg.Wait()

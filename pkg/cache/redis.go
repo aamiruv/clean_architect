@@ -14,14 +14,14 @@ type redisCache struct {
 }
 
 func NewRedisDriver(client *redis.Client, prefix string) Driver {
-	return &redisCache{client: client, prefix: prefix}
+	return redisCache{client: client, prefix: prefix}
 }
 
-func (r *redisCache) Set(ctx context.Context, key string, data []byte, ttl time.Duration) error {
+func (r redisCache) Set(ctx context.Context, key string, data []byte, ttl time.Duration) error {
 	return r.client.Set(ctx, r.prefix+key, data, ttl).Err()
 }
 
-func (r *redisCache) Get(ctx context.Context, key string) ([]byte, error) {
+func (r redisCache) Get(ctx context.Context, key string) ([]byte, error) {
 	cmd := r.client.Get(ctx, r.prefix+key)
 	if err := cmd.Err(); err != nil {
 		if errors.Is(err, redis.Nil) {
@@ -32,6 +32,10 @@ func (r *redisCache) Get(ctx context.Context, key string) ([]byte, error) {
 	return cmd.Bytes()
 }
 
-func (r *redisCache) Delete(ctx context.Context, key string) error {
+func (r redisCache) Delete(ctx context.Context, key string) error {
 	return r.client.Del(ctx, r.prefix+key).Err()
+}
+
+func (r redisCache) Close() error {
+	return r.client.Close()
 }

@@ -53,3 +53,7 @@ func (c *inMemCache) Delete(_ context.Context, key string) error {
 	c.mu.Unlock()
 	return nil
 }
+
+func (c *inMemCache) Close() error {
+	return nil
+}

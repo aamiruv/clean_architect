@@ -35,3 +35,7 @@ func (m memCache) Get(_ context.Context, key string) (data []byte, err error) {
 func (m memCache) Delete(_ context.Context, key string) error {
 	return m.Client.Delete(m.Prefix + key)
 }
+
+func (m memCache) Close() error {
+	return m.Client.Close()
+}
