@@ -12,7 +12,7 @@ type rabbit struct {
 	ch   *amqp.Channel
 }
 
-func NewRabbitBroker(url string, exqs map[string][]string) (Driver, error) {
+func NewRabbitBroker(url string, queues []string) (Driver, error) {
 	conn, err := amqp.Dial(url)
 	if err != nil {
 		return nil, err
@@ -23,25 +23,17 @@ func NewRabbitBroker(url string, exqs map[string][]string) (Driver, error) {
 		return nil, err
 	}
 
-	for ex, qs := range exqs {
-		if err := channel.ExchangeDeclare(ex, "direct", true, false, false, false, nil); err != nil {
+	for _, queue := range queues {
+		_, err := channel.QueueDeclare(queue, true, true, false, false, nil)
+		if err != nil {
 			return nil, err
-		}
-		for _, q := range qs {
-			_, err := channel.QueueDeclare(q, true, true, false, false, nil)
-			if err != nil {
-				return nil, err
-			}
-			if err = channel.QueueBind(q, "", ex, false, nil); err != nil {
-				return nil, err
-			}
 		}
 	}
 	return rabbit{conn: conn, ch: channel}, nil
 }
 
-func (r rabbit) Publish(subject string, data []byte) error {
-	return r.ch.Publish(subject, "", false, false, amqp.Publishing{
+func (r rabbit) Publish(queue string, data []byte) error {
+	return r.ch.Publish("", queue, false, false, amqp.Publishing{
 		ContentType: "application/octet-stream",
 		Body:        data,
 		Timestamp:   time.Now(),

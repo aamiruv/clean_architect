@@ -24,7 +24,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
-	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -63,31 +62,47 @@ func main() {
 	}
 }
 
-func CacheDriver(driver, address, prefix string) cache.Driver {
+func CacheDriver(driver, url, prefix string) cache.Driver {
 	switch driver {
 	case "redis":
-		rdb := redis.NewClient(&redis.Options{Addr: address})
-		return cache.NewRedisDriver(rdb, prefix)
-
+		return cache.NewRedisDriver(url, prefix)
 	case "memcached":
-		mc := memcache.New(address)
+		mc := memcache.New(url)
 		return cache.NewMemCachedDriver(mc, prefix)
-
 	default:
 		return cache.NewInMemoryDriver()
 	}
 }
 
+func EventDriver(driver, url string, queues []string) (bus.Driver, error) {
+	switch driver {
+	case "redis":
+		return bus.NewRedisBroker(url)
+	case "nats":
+		return bus.NewNatsBroker(url)
+	case "rabbitmq":
+		return bus.NewRabbitBroker(url, queues)
+	default:
+		return bus.NewInMemoryDriver(queues), nil
+	}
+}
+
 func run(ctx context.Context, cfg config.AppConfig) error {
-	eventDriver, err := bus.NewRabbitBroker("", map[string][]string{
-		"event_bus_exchange": {"event_bus_queue", "event_bus_q2"},
-	})
+	eventDriver, err := EventDriver(
+		cfg.Event().Driver(),
+		cfg.Event().ConnectionString(),
+		[]string{}, // todo: add some queues
+	)
 	if err != nil {
 		return err
 	}
 
-	cacheDriver := CacheDriver(cfg.Cache().Driver(), cfg.Cache().ConnectionString(), cfg.Cache().Prefix())
-	if err := cacheDriver.Ping(ctx); err != nil {
+	cacheDriver := CacheDriver(
+		cfg.Cache().Driver(),
+		cfg.Cache().ConnectionString(),
+		cfg.Cache().Prefix(),
+	)
+	if err = cacheDriver.Ping(ctx); err != nil {
 		return err
 	}
 
@@ -196,7 +211,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	exitCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGKILL)
 	defer stop()
 
-	errCh := make(chan error, 4)
+	errCh := make(chan error)
 
 	go func() {
 		if err = webServer.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -221,27 +236,24 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(4)
 
+	for _, f := range [...]func() error{
+		webServer.GracefulShutdown,
+		db.Close,
+		cacheDriver.Close,
+		eventDriver.Close,
+		func() error { grpcServer.GracefulShutdown(); return nil },
+	} {
+		wg.Add(1)
+		go func() {
+			errCh <- f()
+			wg.Done()
+		}()
+	}
 	go func() {
-		defer wg.Done()
-		grpcServer.GracefulShutdown()
+		wg.Wait()
+		close(errCh)
 	}()
-	go func() {
-		defer wg.Done()
-		errCh <- webServer.GracefulShutdown()
-	}()
-	go func() {
-		defer wg.Done()
-		errCh <- db.Close()
-	}()
-	go func() {
-		defer wg.Done()
-		errCh <- cacheDriver.Close()
-	}()
-
-	wg.Wait()
-	close(errCh)
 
 	for shutdownError := range errCh {
 		err = errors.Join(err, shutdownError)

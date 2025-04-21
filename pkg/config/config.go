@@ -24,6 +24,7 @@ type AppConfig struct {
 	logger logger
 	auth   auth
 	cache  cache
+	event  event
 }
 
 func (app AppConfig) DB() db {
@@ -48,6 +49,10 @@ func (app AppConfig) Auth() auth {
 
 func (app AppConfig) Cache() cache {
 	return app.cache
+}
+
+func (app AppConfig) Event() event {
+	return app.event
 }
 
 // tmpConfig holds the configurations for the entire application, including
@@ -92,10 +97,19 @@ type tmpConfig struct {
 		LifeTime int    `default:"1" json:"lifeTime" yaml:"lifeTime" toml:"lifeTime"`
 	} `json:"auth" yaml:"auth" toml:"auth"`
 	Cache struct {
-		Driver string `default:"inmemory" json:"driver" yaml:"driver" toml:"driver"`
-		IP     string `default:"127.0.0.1" json:"ip" yaml:"ip" toml:"ip"`
-		Port   uint   `default:"" json:"port" yaml:"port" toml:"port"`
-		Prefix string `default:"app" json:"prefix" yaml:"prefix" toml:"prefix"`
+		Driver   string `default:"" json:"driver" yaml:"driver" toml:"driver"`
+		IP       string `default:"" json:"ip" yaml:"ip" toml:"ip"`
+		Port     uint   `default:"" json:"port" yaml:"port" toml:"port"`
+		Prefix   string `default:"" json:"prefix" yaml:"prefix" toml:"prefix"`
+		UserName string `default:"" json:"userName" yaml:"userName" toml:"userName"`
+		Password string `default:"" json:"password" yaml:"password" toml:"password"`
+	}
+	Event struct {
+		Driver   string `default:"" json:"driver" yaml:"driver" toml:"driver"`
+		IP       string `default:"" json:"ip" yaml:"ip" toml:"ip"`
+		Port     uint   `default:"" json:"port" yaml:"port" toml:"port"`
+		UserName string `default:"" json:"userName" yaml:"userName" toml:"userName"`
+		Password string `default:"" json:"password" yaml:"password" toml:"password"`
 	}
 }
 
@@ -139,9 +153,19 @@ func (cfg tmpConfig) ToAppConfig() AppConfig {
 			lifeTime: cfg.Auth.LifeTime,
 		},
 		cache: cache{
-			driver: cfg.Cache.Driver,
-			ip:     cfg.Cache.IP,
-			port:   cfg.Cache.Port,
+			driver:   cfg.Cache.Driver,
+			ip:       cfg.Cache.IP,
+			port:     cfg.Cache.Port,
+			prefix:   cfg.Cache.Prefix,
+			user:     cfg.Cache.UserName,
+			password: cfg.Cache.Password,
+		},
+		event: event{
+			driver:   cfg.Event.Driver,
+			ip:       cfg.Event.IP,
+			port:     cfg.Event.Port,
+			user:     cfg.Event.UserName,
+			password: cfg.Event.Password,
 		},
 	}
 }

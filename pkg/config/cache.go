@@ -3,10 +3,12 @@ package config
 import "fmt"
 
 type cache struct {
-	driver string
-	ip     string
-	port   uint
-	prefix string
+	driver   string
+	ip       string
+	port     uint
+	prefix   string
+	user     string
+	password string
 }
 
 func (c cache) Prefix() string {
@@ -18,5 +20,16 @@ func (c cache) Driver() string {
 }
 
 func (c cache) ConnectionString() string {
-	return fmt.Sprintf("%s:%d", c.ip, c.port)
+	url := fmt.Sprintf("%s:%d", c.ip, c.port)
+	if c.user != "" && c.password != "" {
+		url = fmt.Sprintf("%s:%s@%s", c.user, c.password, url)
+	}
+	switch c.driver {
+	case "redis":
+		return fmt.Sprintf("redis://%s", url)
+	case "memcached":
+		return url
+	default:
+		return ""
+	}
 }
