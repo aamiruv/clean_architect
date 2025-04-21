@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type inMemCache struct {
+type inMemoryCache struct {
 	mu    sync.RWMutex
 	store map[string]item
 }
@@ -17,10 +17,10 @@ type item struct {
 }
 
 func NewInMemoryDriver() Driver {
-	return &inMemCache{store: make(map[string]item)}
+	return &inMemoryCache{store: make(map[string]item)}
 }
 
-func (c *inMemCache) Set(_ context.Context, key string, data []byte, ttl time.Duration) error {
+func (c *inMemoryCache) Set(_ context.Context, key string, data []byte, ttl time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	exp := time.Time{}
@@ -31,7 +31,7 @@ func (c *inMemCache) Set(_ context.Context, key string, data []byte, ttl time.Du
 	return nil
 }
 
-func (c *inMemCache) Get(ctx context.Context, key string) ([]byte, error) {
+func (c *inMemoryCache) Get(ctx context.Context, key string) ([]byte, error) {
 	c.mu.RLock()
 	itm, ok := c.store[key]
 	c.mu.RUnlock()
@@ -47,13 +47,17 @@ func (c *inMemCache) Get(ctx context.Context, key string) ([]byte, error) {
 	return itm.data, nil
 }
 
-func (c *inMemCache) Delete(_ context.Context, key string) error {
+func (c *inMemoryCache) Delete(_ context.Context, key string) error {
 	c.mu.Lock()
 	delete(c.store, key)
 	c.mu.Unlock()
 	return nil
 }
 
-func (c *inMemCache) Close() error {
+func (c *inMemoryCache) Ping(context.Context) error {
+	return nil
+}
+
+func (c *inMemoryCache) Close() error {
 	return nil
 }

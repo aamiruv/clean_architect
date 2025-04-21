@@ -35,6 +35,7 @@ import (
 	"github.com/amirzayi/clean_architect/internal/repository"
 	"github.com/amirzayi/clean_architect/internal/service"
 	"github.com/amirzayi/clean_architect/pkg/auth"
+	"github.com/amirzayi/clean_architect/pkg/bus"
 	"github.com/amirzayi/clean_architect/pkg/cache"
 	"github.com/amirzayi/clean_architect/pkg/config"
 	"github.com/amirzayi/clean_architect/pkg/hash"
@@ -78,7 +79,17 @@ func CacheDriver(driver, address, prefix string) cache.Driver {
 }
 
 func run(ctx context.Context, cfg config.AppConfig) error {
+	eventDriver, err := bus.NewRabbitBroker("", map[string][]string{
+		"event_bus_exchange": {"event_bus_queue", "event_bus_q2"},
+	})
+	if err != nil {
+		return err
+	}
+
 	cacheDriver := CacheDriver(cfg.Cache().Driver(), cfg.Cache().ConnectionString(), cfg.Cache().Prefix())
+	if err := cacheDriver.Ping(ctx); err != nil {
+		return err
+	}
 
 	db, err := sql.Open(cfg.DB().Driver(), cfg.DB().ConnectionString())
 	if err != nil {
@@ -126,6 +137,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 		Hasher:       hash.NewBcryptHasher(bcrypt.DefaultCost),
 		AuthManager:  authManager,
 		Cache:        cacheDriver,
+		Event:        eventDriver,
 	})
 
 	gwMux := runtime.NewServeMux()

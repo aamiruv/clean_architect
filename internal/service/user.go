@@ -9,6 +9,7 @@ import (
 
 	"github.com/amirzayi/clean_architect/internal/domain"
 	"github.com/amirzayi/clean_architect/internal/repository"
+	"github.com/amirzayi/clean_architect/pkg/bus"
 	"github.com/amirzayi/clean_architect/pkg/cache"
 )
 
@@ -18,14 +19,16 @@ type User interface {
 }
 
 type user struct {
-	db    repository.User
-	cache cache.Cache[domain.User]
+	db       repository.User
+	cache    cache.Cache[domain.User]
+	eventBus bus.EventBus[domain.User]
 }
 
-func NewUserService(db repository.User, cacheDriver cache.Driver) User {
+func NewUserService(db repository.User, cacheDriver cache.Driver, eventDriver bus.Driver) User {
 	return &user{
-		db:    db,
-		cache: cache.New[domain.User](cacheDriver),
+		db:       db,
+		cache:    cache.New[domain.User](cacheDriver),
+		eventBus: bus.New[domain.User](eventDriver),
 	}
 }
 

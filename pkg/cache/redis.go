@@ -36,6 +36,11 @@ func (r redisCache) Delete(ctx context.Context, key string) error {
 	return r.client.Del(ctx, r.prefix+key).Err()
 }
 
+func (r redisCache) Ping(ctx context.Context) error {
+	status := r.client.Ping(ctx)
+	return status.Err()
+}
+
 func (r redisCache) Close() error {
 	return r.client.Close()
 }
