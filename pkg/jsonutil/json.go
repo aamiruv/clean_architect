@@ -1,4 +1,4 @@
-package util
+package jsonutil
 
 import (
 	"encoding/json"
@@ -29,6 +29,9 @@ var validate = validator.New()
 
 func DecodeAndValidate[T any](r *http.Request) (T, error) {
 	v, err := Decode[T](r)
+	if err != nil {
+		return v, err
+	}
 	if err = validate.Struct(v); err != nil {
 		return v, fmt.Errorf("failed to validate json: %w", err)
 	}

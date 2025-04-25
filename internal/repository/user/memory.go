@@ -22,15 +22,14 @@ type userInMemoryRepo struct {
 
 func NewUserInMemoryRepo() *userInMemoryRepo {
 	return &userInMemoryRepo{
-		mu:    sync.RWMutex{},
 		store: make(map[uuid.UUID]domain.User),
 	}
 }
 
 func (r *userInMemoryRepo) Create(ctx context.Context, user domain.User) error {
-	_, err := r.FindByID(ctx, user.ID)
-	if err != nil {
-		return err
+	user, err := r.GetByID(ctx, user.ID)
+	if err == nil {
+		return ErrUserAlreadyExists
 	}
 
 	r.mu.Lock()
@@ -39,12 +38,12 @@ func (r *userInMemoryRepo) Create(ctx context.Context, user domain.User) error {
 	return nil
 }
 
-func (r *userInMemoryRepo) FindByID(_ context.Context, id uuid.UUID) (domain.User, error) {
+func (r *userInMemoryRepo) GetByID(_ context.Context, id uuid.UUID) (domain.User, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	user, ok := r.store[id]
 	if !ok {
-		return domain.User{}, ErrUserAlreadyExists
+		return domain.User{}, ErrUserNotFound
 	}
 	return user, nil
 }
@@ -60,4 +59,42 @@ func (r *userInMemoryRepo) GetByEmail(ctx context.Context, email string) (domain
 	}
 
 	return domain.User{}, ErrUserNotFound
+}
+
+func (r *userInMemoryRepo) List(context.Context) ([]domain.User, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	users := make([]domain.User, 0, len(r.store))
+	for _, user := range r.store {
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+func (r *userInMemoryRepo) Delete(ctx context.Context, id uuid.UUID) error {
+	user, err := r.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	r.mu.Lock()
+	user.Status = domain.UserStatusDeleted
+	r.store[id] = user
+	r.mu.Unlock()
+	return nil
+}
+
+func (r *userInMemoryRepo) Update(ctx context.Context, user domain.User) error {
+	u, err := r.GetByID(ctx, user.ID)
+	if err != nil {
+		return err
+	}
+	r.mu.Lock()
+	u.Name = user.Name
+	u.PhoneNumber = user.PhoneNumber
+	u.Email = user.Email
+	u.Password = user.Password
+	r.store[user.ID] = u
+	r.mu.Unlock()
+	return nil
 }

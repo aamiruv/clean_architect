@@ -8,6 +8,7 @@ import (
 
 type PasswordHasher interface {
 	Hash(password string) (hashed string, err error)
+	Compare(hashedPassword, password string) error
 }
 
 type bcryptHasher struct {
@@ -24,4 +25,8 @@ func (b *bcryptHasher) Hash(pwd string) (string, error) {
 		return "", fmt.Errorf("failed to hash password: %v", err)
 	}
 	return string(password), nil
+}
+
+func (b *bcryptHasher) Compare(hashedPassword, password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }

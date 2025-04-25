@@ -144,8 +144,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 
 	repos := repository.NewSQLRepositories(db)
 
-	// todo: configurable token lifetime
-	authManager := auth.NewJWT(jwt.SigningMethodES384, []byte(cfg.Auth().Secret()), cfg.Auth().LifeTime())
+	authManager := auth.NewJWT(jwt.SigningMethodHS512, []byte(cfg.Auth().Secret()), cfg.Auth().LifeTime())
 
 	services := service.NewServices(&service.Dependencies{
 		Repositories: repos,

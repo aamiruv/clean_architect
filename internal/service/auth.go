@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/amirzayi/clean_architect/internal/domain"
 	"github.com/amirzayi/clean_architect/pkg/auth"
@@ -10,6 +11,7 @@ import (
 
 type Auth interface {
 	Register(ctx context.Context, auth domain.Auth) error
+	Login(ctx context.Context, auth domain.Auth) (token string, err error)
 }
 
 type authService struct {
@@ -36,6 +38,7 @@ func (a *authService) Register(ctx context.Context, auth domain.Auth) error {
 		Email:       auth.Email,
 		PhoneNumber: auth.PhoneNumber,
 		Password:    pwd,
+		Role:        domain.UserRoleNormal,
 	}
 
 	_, err = a.userService.Create(ctx, user)
@@ -43,4 +46,22 @@ func (a *authService) Register(ctx context.Context, auth domain.Auth) error {
 		return err
 	}
 	return nil
+}
+func (a *authService) Login(ctx context.Context, auth domain.Auth) (string, error) {
+	// todo: add login via phone no
+	user, err := a.userService.GetByEmail(ctx, auth.Email)
+	if err != nil {
+		return "", err
+	}
+
+	if user.Status == domain.UserStatusBanned {
+		return "", errors.New("user is banned")
+	}
+
+	if err = a.hasher.Compare(user.Password, auth.Password); err != nil {
+		return "", err
+	}
+
+	token, err := a.authManager.CreateToken(user.ID, string(user.Role))
+	return token, err
 }

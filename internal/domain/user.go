@@ -12,6 +12,8 @@ type UserStatus uint8
 const (
 	UsereStatusNew UserStatus = iota + 1
 	UserStatusActive
+	UserStatusBanned
+	UserStatusDeleted
 )
 
 type UserRole string
