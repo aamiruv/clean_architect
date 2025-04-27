@@ -22,6 +22,9 @@ import (
 	chim "github.com/go-chi/chi/v5/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
@@ -112,6 +115,18 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 	}
 	if err = db.Ping(); err != nil {
 		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	driver, err := sqlite.WithInstance(db, &sqlite.Config{})
+	if err != nil {
+		return fmt.Errorf("failed to load database driver: %v", err)
+	}
+	migrator, err := migrate.NewWithDatabaseInstance("file://infra/migrations", "sqlite", driver)
+	if err != nil {
+		return fmt.Errorf("failed to setup migrator: %v", err)
+	}
+	if err = migrator.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("failed to do migrate: %v", err)
 	}
 
 	var logWriters []io.Writer

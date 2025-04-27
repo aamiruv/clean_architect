@@ -22,7 +22,7 @@ func (r *userSQLRepo) Create(ctx context.Context, user domain.User) error {
 		`INSERT INTO user
 	(id,name,phone,email,password,status,role,created_at)
 	VALUES(?,?,?,?,?,?,?,?)`,
-		user.ID, user.Name, user.PhoneNumber, user.Email, user.Password, user.Status, user.Role, user.CreatedAt)
+		user.ID, user.Name, user.PhoneNumber, user.Email, user.Password, user.Status, user.Role, user.CreatedAt.Format(time.RFC3339))
 	if err != nil {
 		return err
 	}
@@ -43,8 +43,7 @@ func (r *userSQLRepo) scanRow(row *sql.Row) (domain.User, error) {
 	var user domain.User
 	var t string
 	err := row.Scan(&user.ID, &user.Name, &user.PhoneNumber, &user.Email, &user.Password, &user.Status, &user.Role, &t)
-	createdAt, _ := time.Parse(time.RFC3339, t)
-	user.CreatedAt = createdAt
+	user.CreatedAt, _ = time.Parse(time.RFC3339, t)
 	return user, err
 }
 

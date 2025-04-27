@@ -27,7 +27,7 @@ func UserRoutes(logMiddleware middleware.Middleware, userService service.User, a
 		},
 		"/{id}": {
 			http.MethodGet:    rahjoo.NewHandler(user.get),
-			http.MethodDelete: rahjoo.NewHandler(user.delete, logMiddleware),
+			http.MethodDelete: rahjoo.NewHandler(user.delete),
 			http.MethodPut:    rahjoo.NewHandler(user.update),
 		},
 	}.SetMiddleware(
@@ -110,7 +110,7 @@ func (u *userRouter) get(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := u.userService.GetByID(r.Context(), uid)
 	if err != nil {
-		jsonutil.Encode(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		jsonutil.Encode(w, http.StatusNotFound, map[string]string{"error": err.Error()})
 		return
 	}
 	jsonutil.Encode(w, http.StatusOK, user)

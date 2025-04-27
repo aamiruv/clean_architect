@@ -1,7 +1,6 @@
 package v2
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/amirzayi/clean_architect/api/http/handler/v2/dto"
@@ -57,7 +56,6 @@ func (a *authRouter) login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := a.authService.Login(r.Context(), in)
 	if err != nil {
-		log.Println(err)
 		_ = jsonutil.Encode(w, http.StatusNotFound, map[string]string{"error": "user or password not found"})
 		return
 	}

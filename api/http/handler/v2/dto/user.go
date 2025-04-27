@@ -42,6 +42,7 @@ type UpdateUserRequest struct {
 	Password    string `json:"password"`
 	Role        string `json:"role"`
 }
+
 func (r UpdateUserRequest) ToDomain() domain.User {
 	return domain.User{
 		Name:        r.Name,
