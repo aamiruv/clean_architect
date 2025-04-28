@@ -103,14 +103,14 @@ type tmpConfig struct {
 		Prefix   string `default:"" json:"prefix" yaml:"prefix" toml:"prefix"`
 		UserName string `default:"" json:"userName" yaml:"userName" toml:"userName"`
 		Password string `default:"" json:"password" yaml:"password" toml:"password"`
-	}
+	} `json:"cache" yaml:"cache" toml:"cache"`
 	Event struct {
 		Driver   string `default:"" json:"driver" yaml:"driver" toml:"driver"`
 		IP       string `default:"" json:"ip" yaml:"ip" toml:"ip"`
 		Port     uint   `default:"" json:"port" yaml:"port" toml:"port"`
 		UserName string `default:"" json:"userName" yaml:"userName" toml:"userName"`
 		Password string `default:"" json:"password" yaml:"password" toml:"password"`
-	}
+	} `json:"event" yaml:"event" toml:"event"`
 }
 
 func (cfg tmpConfig) ToAppConfig() AppConfig {
