@@ -4,29 +4,51 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 const (
-	defaultPerPageSize = 10
+	defaultPerPageSize     = 10
+	defaultSortingArrange  = SortOrderDescending
+	defaultFilterCondition = FilterEqual
 
 	pageParamName    = "page"
 	perPageParamName = "per_page"
 	sortParamName    = "sort"
 	fieldsParamName  = "fields"
+
+	FilterEqual        = "="
+	FilterNotEqual     = "!="
+	FilterGreater      = ">"
+	FilterGreaterEqual = ">="
+	FilterLess         = "<"
+	FilterLessEqual    = "<="
+	FilterIn           = "in"
+	FilterBetween      = "between"
+	FilterLike         = "like"
+
+	SortOrderAscending  = "asc"
+	SortOrderDescending = "desc"
 )
 
 type Filter struct {
+	Key       string `json:"key"`
 	Value     string `json:"value"`
 	Condition string `json:"condition"`
 }
 
+type Sort struct {
+	Field   string `json:"field"`
+	Arrange string `json:"arrange"`
+}
+
 type Pagination struct {
-	Page       int               `json:"page,omitempty"`
-	PerPage    int               `json:"per_page,,omitempty"`
-	Sort       string            `json:"sort,omitempty"`
-	Fields     string            `json:"fields,omitempty"`
-	Filters    map[string]Filter `json:"filters,omitempty"`
-	TotalItems int64             `json:"total_items"`
+	Page       int      `json:"page,omitempty"`
+	PerPage    int      `json:"per_page,,omitempty"`
+	Sort       []Sort   `json:"sort,omitempty"`
+	Fields     string   `json:"fields,omitempty"`
+	Filters    []Filter `json:"filters,omitempty"`
+	TotalItems int64    `json:"total_items"`
 }
 
 type List struct {
@@ -35,49 +57,77 @@ type List struct {
 }
 
 func ParseFromHttpRequest(r *http.Request) *Pagination {
+	queries := r.URL.Query()
+
 	page := 1
-	if r.URL.Query().Has(pageParamName) {
-		pageNo, err := strconv.Atoi(r.URL.Query().Get(pageParamName))
+	if queries.Has(pageParamName) {
+		pageNo, err := strconv.Atoi(queries.Get(pageParamName))
 		if err == nil && pageNo > 0 {
 			page = pageNo
 		}
 	}
 
 	perPage := defaultPerPageSize
-	if r.URL.Query().Has(perPageParamName) {
-		perPageNo, err := strconv.Atoi(r.URL.Query().Get(perPageParamName))
+	if queries.Has(perPageParamName) {
+		perPageNo, err := strconv.Atoi(queries.Get(perPageParamName))
 		if err == nil && perPageNo > 0 {
 			perPage = perPageNo
 		}
 	}
 
-	sort := r.URL.Query().Get(sortParamName)
+	fields := queries.Get(fieldsParamName)
 
-	fields := r.URL.Query().Get(fieldsParamName)
+	sort := []Sort{}
 
-	filters := make(map[string]Filter)
-
-	queries := r.URL.Query()
+	filters := []Filter{}
 
 	for query, values := range queries {
+		// prevent sql injection
+		if strings.Contains(query, " ") || strings.Contains(query, ";") {
+			continue
+		}
+
+		// prevent conflicts with pagination
 		if slices.Contains([]string{
 			pageParamName,
 			perPageParamName,
-			sortParamName,
 			fieldsParamName,
 		}, query) {
 			continue
 		}
 
-		param := Filter{
-			Value:     values[0],
-			Condition: "=",
-		}
-		if len(values) > 1 {
-			param.Condition = values[1]
+		if query == sortParamName {
+			for _, v := range values {
+				if isValidSortArrange(v) {
+					if len(sort) > 0 {
+						sort[len(sort)-1].Arrange = v
+					}
+					continue
+				}
+				sorting := Sort{
+					Field:   v,
+					Arrange: defaultSortingArrange,
+				}
+				sort = append(sort, sorting)
+			}
+			continue
 		}
 
-		filters[query] = param
+		for _, v := range values {
+			if isValidFilterCondition(v) {
+				if len(filters) > 0 {
+					filters[len(filters)-1].Condition = v
+				}
+				continue
+			}
+
+			filter := Filter{
+				Key:       query,
+				Value:     v,
+				Condition: defaultFilterCondition,
+			}
+			filters = append(filters, filter)
+		}
 	}
 
 	return &Pagination{
@@ -91,4 +141,22 @@ func ParseFromHttpRequest(r *http.Request) *Pagination {
 
 func (p *Pagination) SetTotalItems(totalItems int64) {
 	p.TotalItems = totalItems
+}
+
+func isValidFilterCondition(condition string) bool {
+	return slices.Contains([]string{
+		FilterEqual,
+		FilterNotEqual,
+		FilterGreater,
+		FilterGreaterEqual,
+		FilterLess,
+		FilterLessEqual,
+		FilterIn,
+		FilterBetween,
+		FilterLike,
+	}, condition)
+}
+
+func isValidSortArrange(arrange string) bool {
+	return slices.Contains([]string{SortOrderAscending, SortOrderDescending}, arrange)
 }

@@ -9,18 +9,43 @@ import (
 )
 
 func ExampleParseFromHttpRequest() {
+	page := "page=3&per_page=15"
+	sort := "sort=age&sort=asc&sort=id"
+	fields := "fields=first_name,last_name"
+	filters := "first_name=amir&first_name=like&last_name=mirzaei&age=30&age=!=&age=26,33&age=between"
+	invalidFilters := "id=1; or drop table user"
+
 	r := &http.Request{URL: &url.URL{
-		RawQuery: "first_name=amir&first_name=like&last_name=mirzaei&age=30&age=>=",
+		RawQuery: fmt.Sprintf("%s&%s&%s&%s&%s", page, fields, sort, filters, invalidFilters),
 	}}
 
 	pagination := paginate.ParseFromHttpRequest(r)
 
-	for query, filter := range pagination.Filters {
-		fmt.Printf("%s must %s %s.\n", query, filter.Condition, filter.Value)
+	fmt.Printf("page: %d, per_page: %d.\n", pagination.Page, pagination.PerPage)
+
+	fmt.Println("fields:")
+	fmt.Println(pagination.Fields)
+
+	fmt.Println("filters:")
+	for _, filter := range pagination.Filters {
+		fmt.Printf("%s %s %s.\n", filter.Key, filter.Condition, filter.Value)
 	}
 
-	// Unordered output:
-	// age must >= 30.
-	// first_name must like amir.
-	// last_name must = mirzaei.
+	fmt.Println("sorting:")
+	for _, sort := range pagination.Sort {
+		fmt.Printf("%s %s.\n", sort.Field, sort.Arrange)
+	}
+
+	// Output:
+	// page: 3, per_page: 15.
+	// fields:
+	// first_name,last_name
+	// filters:
+	// first_name like amir.
+	// last_name = mirzaei.
+	// age != 30.
+	// age between 26,33.
+	// sorting:
+	// age asc.
+	// id desc.
 }

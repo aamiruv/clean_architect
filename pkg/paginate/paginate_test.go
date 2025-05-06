@@ -25,15 +25,11 @@ func TestParseFromHttpRequest(t *testing.T) {
 
 	pagination := paginate.ParseFromHttpRequest(r)
 
-	name, ok := pagination.Filters["name"]
-	require.True(t, ok)
-	require.NotEmpty(t, name)
-	require.Equal(t, "smith", name.Value)
-	require.Equal(t, "like", name.Condition)
+	require.Contains(t, pagination.Filters, paginate.Filter{
+		Key: "name", Value: "smith", Condition: "like",
+	})
 
-	age, ok := pagination.Filters["age"]
-	require.True(t, ok)
-	require.NotEmpty(t, age)
-	require.Equal(t, "36", age.Value)
-	require.Equal(t, "=", age.Condition)
+	require.Contains(t, pagination.Filters, paginate.Filter{
+		Key: "age", Value: "36", Condition: paginate.FilterEqual,
+	})
 }
