@@ -3,6 +3,8 @@ package user
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/amirzayi/clean_architect/infra/migrations/model"
@@ -47,13 +49,70 @@ func (r *userSQLRepo) GetByEmail(ctx context.Context, email string) (domain.User
 func (r *userSQLRepo) List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error) {
 	var users []model.User
 
+	var query strings.Builder
+
 	fields := pagination.Fields
 	if fields == "" {
 		fields = "*"
 	}
-	query := fmt.Sprintf("SELECT %s FROM user", fields)
+	query.WriteString(fmt.Sprintf("SELECT %s FROM user", fields))
 
-	err := r.db.SelectContext(ctx, &users, query)
+	if len(pagination.Filters) > 0 {
+		whereClause := ""
+
+		for _, filter := range pagination.Filters {
+			whereQuery := ""
+
+			switch filter.Condition {
+			case paginate.FilterBetween:
+				values := strings.Split(filter.Value, ",")
+				if len(values) < 2 {
+					continue
+				}
+				whereQuery = fmt.Sprintf("%s BETWEEN %s AND %s", filter.Key, values[0], values[1])
+
+			case paginate.FilterIn:
+				values := strings.Split(filter.Value, ",")
+				if len(values) < 2 {
+					continue
+				}
+				args := filter.Value
+				_, err := strconv.Atoi(values[0])
+				if err != nil {
+					args = strings.Join(values, `","`)
+					args = `"` + args + `"`
+				}
+				whereQuery = fmt.Sprintf("%s IN(%s)", filter.Key, args)
+
+			default:
+				whereQuery = fmt.Sprintf("%s %s %q", filter.Key, filter.Condition, filter.Value)
+			}
+
+			if whereClause == "" {
+				whereClause = whereQuery
+			} else {
+				whereClause = fmt.Sprintf("%s AND %s", whereClause, whereQuery)
+			}
+		}
+		if whereClause != "" {
+			query.WriteString(fmt.Sprintf(" WHERE %s", whereClause))
+		}
+	}
+
+	if len(pagination.Sort) > 0 {
+		orderBy := ""
+		for _, sort := range pagination.Sort {
+			if orderBy != "" {
+				orderBy += ", "
+			}
+			orderBy += fmt.Sprintf(" %s %s", sort.Field, sort.Arrange)
+		}
+		query.WriteString(fmt.Sprintf(" ORDER BY %s", orderBy))
+	}
+
+	query.WriteString(fmt.Sprintf(" LIMIT %d offset %d", pagination.PerPage, (pagination.Page-1)*pagination.PerPage))
+
+	err := r.db.SelectContext(ctx, &users, query.String())
 
 	return model.ConvertUsersToDomains(users), err
 }
