@@ -12,7 +12,7 @@ func ExampleParseFromRequest() {
 	page := "page=3&per_page=15"
 	sort := "sort=age&sort=asc&sort=id"
 	fields := "fields=first_name,last_name"
-	filters := "first_name=amir&first_name=like&last_name=mirzaei&age=30&age=!=&age=26,33&age=between"
+	filters := "first_name=amir&first_name=like&last_name=mirzaei&age=30&age=neq&age=26,33&age=between"
 	invalidFilters := "id=1; or drop table user"
 
 	r := &http.Request{URL: &url.URL{
@@ -42,8 +42,8 @@ func ExampleParseFromRequest() {
 	// first_name,last_name
 	// filters:
 	// first_name like amir.
-	// last_name = mirzaei.
-	// age != 30.
+	// last_name eq mirzaei.
+	// age neq 30.
 	// age between 26,33.
 	// sorting:
 	// age asc.
