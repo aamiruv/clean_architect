@@ -45,18 +45,18 @@ type Sort struct {
 type Pagination struct {
 	Page       int      `json:"page,omitempty"`
 	PerPage    int      `json:"per_page,,omitempty"`
-	Sort       []Sort   `json:"sort,omitempty"`
 	Fields     string   `json:"fields,omitempty"`
+	Sort       []Sort   `json:"sort,omitempty"`
 	Filters    []Filter `json:"filters,omitempty"`
 	TotalItems int64    `json:"total_items"`
 }
 
-type List struct {
+type ListResponse struct {
 	Data       any         `json:"data"`
 	Pagination *Pagination `json:"pagination,omitempty"`
 }
 
-func ParseFromHttpRequest(r *http.Request) *Pagination {
+func ParseFromRequest(r *http.Request) *Pagination {
 	queries := r.URL.Query()
 
 	page := 1

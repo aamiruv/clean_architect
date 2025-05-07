@@ -16,6 +16,22 @@ const (
 	UserStatusDeleted
 )
 
+func (status UserStatus) String() string {
+	switch status {
+	case UsereStatusNew:
+		return "new"
+	case UserStatusActive:
+		return "active"
+	case UserStatusBanned:
+		return "banned"
+	case UserStatusDeleted:
+		return "deleted"
+
+	default:
+		return ""
+	}
+}
+
 type UserRole string
 
 const (

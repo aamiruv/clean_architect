@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
@@ -26,6 +25,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
@@ -109,15 +109,12 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 		return err
 	}
 
-	db, err := sql.Open(cfg.DB().Driver(), cfg.DB().ConnectionString())
+	db, err := sqlx.Connect(cfg.DB().Driver(), cfg.DB().ConnectionString())
 	if err != nil {
-		return fmt.Errorf("failed to open database connection: %w", err)
-	}
-	if err = db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping database: %w", err)
+		return fmt.Errorf("failed to connect database: %w", err)
 	}
 
-	driver, err := sqlite.WithInstance(db, &sqlite.Config{})
+	driver, err := sqlite.WithInstance(db.DB, &sqlite.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to load database driver: %v", err)
 	}

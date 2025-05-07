@@ -11,13 +11,14 @@ import (
 	"github.com/amirzayi/clean_architect/internal/repository"
 	"github.com/amirzayi/clean_architect/pkg/bus"
 	"github.com/amirzayi/clean_architect/pkg/cache"
+	"github.com/amirzayi/clean_architect/pkg/paginate"
 )
 
 type User interface {
 	Create(ctx context.Context, user domain.User) (domain.User, error)
 	GetByID(ctx context.Context, id uuid.UUID) (domain.User, error)
 	GetByEmail(ctx context.Context, email string) (domain.User, error)
-	List(ctx context.Context) ([]domain.User, error)
+	List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	Update(ctx context.Context, user domain.User) error
 }
@@ -54,8 +55,8 @@ func (u *user) GetByEmail(ctx context.Context, email string) (domain.User, error
 	return user, nil
 }
 
-func (u *user) List(ctx context.Context) ([]domain.User, error) {
-	return u.db.List(ctx)
+func (u *user) List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error) {
+	return u.db.List(ctx, pagination)
 }
 
 func (u *user) Delete(ctx context.Context, id uuid.UUID) error {

@@ -9,6 +9,7 @@ import (
 	"github.com/amirzayi/clean_architect/internal/service"
 	"github.com/amirzayi/clean_architect/pkg/auth"
 	"github.com/amirzayi/clean_architect/pkg/jsonutil"
+	"github.com/amirzayi/clean_architect/pkg/paginate"
 	"github.com/amirzayi/rahjoo"
 	"github.com/amirzayi/rahjoo/middleware"
 	"github.com/google/uuid"
@@ -37,16 +38,23 @@ func UserRoutes(logMiddleware middleware.Middleware, userService service.User, a
 }
 
 func (u *userRouter) list(w http.ResponseWriter, r *http.Request) {
-	users, err := u.userService.List(r.Context())
+	p := paginate.ParseFromRequest(r)
+
+	users, err := u.userService.List(r.Context(), p)
 	if err != nil {
+		jsonutil.Encode(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
 	}
+
 	var userResponses []dto.UserResponse
 	for _, user := range users {
 		userResponses = append(userResponses, dto.UserDomainToDTO(user))
 	}
 
-	jsonutil.Encode(w, http.StatusOK, map[string]any{"data": userResponses})
+	jsonutil.Encode(w, http.StatusOK, paginate.ListResponse{
+		Data:       userResponses,
+		Pagination: p,
+	})
 }
 
 func (u *userRouter) create(w http.ResponseWriter, r *http.Request) {

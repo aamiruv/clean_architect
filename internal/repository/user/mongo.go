@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/amirzayi/clean_architect/internal/domain"
+	"github.com/amirzayi/clean_architect/pkg/paginate"
 	"github.com/google/uuid"
 )
 
@@ -36,7 +37,7 @@ func (r *userMongoRepo) GetByEmail(ctx context.Context, email string) (domain.Us
 	err := r.db.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	return user, err
 }
-func (r *userMongoRepo) List(ctx context.Context) ([]domain.User, error) {
+func (r *userMongoRepo) List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error) {
 	var users []domain.User
 	cursor, err := r.db.Find(ctx, nil)
 	if err != nil {

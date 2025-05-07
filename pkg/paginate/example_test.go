@@ -8,7 +8,7 @@ import (
 	"github.com/amirzayi/clean_architect/pkg/paginate"
 )
 
-func ExampleParseFromHttpRequest() {
+func ExampleParseFromRequest() {
 	page := "page=3&per_page=15"
 	sort := "sort=age&sort=asc&sort=id"
 	fields := "fields=first_name,last_name"
@@ -19,7 +19,7 @@ func ExampleParseFromHttpRequest() {
 		RawQuery: fmt.Sprintf("%s&%s&%s&%s&%s", page, fields, sort, filters, invalidFilters),
 	}}
 
-	pagination := paginate.ParseFromHttpRequest(r)
+	pagination := paginate.ParseFromRequest(r)
 
 	fmt.Printf("page: %d, per_page: %d.\n", pagination.Page, pagination.PerPage)
 

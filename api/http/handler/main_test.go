@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"database/sql"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/crypto/bcrypt"
 
@@ -33,7 +33,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
+	db, err := sqlx.Open("sqlite3", "file::memory:?cache=shared")
 	if err != nil {
 		log.Fatalf("failed to open database connection: %v", err)
 	}
@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	}
 	defer db.Close()
 
-	driver, err := sqlite3.WithInstance(db, &sqlite3.Config{})
+	driver, err := sqlite3.WithInstance(db.DB, &sqlite3.Config{})
 	if err != nil {
 		log.Fatalf("failed to load database driver: %v", err)
 	}

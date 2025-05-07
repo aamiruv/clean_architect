@@ -2,18 +2,21 @@ package user
 
 import (
 	"context"
-	"database/sql"
+	"fmt"
 	"time"
 
+	"github.com/amirzayi/clean_architect/infra/migrations/model"
 	"github.com/amirzayi/clean_architect/internal/domain"
+	"github.com/amirzayi/clean_architect/pkg/paginate"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 )
 
 type userSQLRepo struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func NewUserSQLRepository(db *sql.DB) *userSQLRepo {
+func NewUserSQLRepository(db *sqlx.DB) *userSQLRepo {
 	return &userSQLRepo{db: db}
 }
 
@@ -30,46 +33,29 @@ func (r *userSQLRepo) Create(ctx context.Context, user domain.User) error {
 }
 
 func (r *userSQLRepo) GetByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
-	row := r.db.QueryRowContext(ctx, "SELECT * FROM user WHERE id=? LIMIT 1", id)
-	return r.scanRow(row)
-}
-
-func (r *userSQLRepo) GetByEmail(ctx context.Context, email string) (domain.User, error) {
-	row := r.db.QueryRowContext(ctx, "SELECT * FROM user WHERE email=? LIMIT 1", email)
-	return r.scanRow(row)
-}
-
-func (r *userSQLRepo) scanRow(row *sql.Row) (domain.User, error) {
 	var user domain.User
-	var t string
-	err := row.Scan(&user.ID, &user.Name, &user.PhoneNumber, &user.Email, &user.Password, &user.Status, &user.Role, &t)
-	user.CreatedAt, _ = time.Parse(time.RFC3339, t)
+	err := r.db.GetContext(ctx, &user, "SELECT * FROM user WHERE id=? LIMIT 1", id)
 	return user, err
 }
 
-func (r *userSQLRepo) scanRows(rows *sql.Rows) ([]domain.User, error) {
-	var (
-		users []domain.User
-		user  domain.User
-		t     string
-	)
-	for rows.Next() {
-		if err := rows.Scan(&user.ID, &user.Name, &user.PhoneNumber, &user.Email, &user.Password, &user.Status, &user.Role, &t); err != nil {
-			return users, err
-		}
-		createdAt, _ := time.Parse(time.RFC3339, t)
-		user.CreatedAt = createdAt
-		users = append(users, user)
-	}
-	return users, nil
+func (r *userSQLRepo) GetByEmail(ctx context.Context, email string) (domain.User, error) {
+	var user domain.User
+	err := r.db.GetContext(ctx, &user, "SELECT * FROM user WHERE email=? LIMIT 1", email)
+	return user, err
 }
 
-func (r *userSQLRepo) List(ctx context.Context) ([]domain.User, error) {
-	res, err := r.db.QueryContext(ctx, "SELECT * FROM user")
-	if err != nil {
-		return nil, err
+func (r *userSQLRepo) List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error) {
+	var users []model.User
+
+	fields := pagination.Fields
+	if fields == "" {
+		fields = "*"
 	}
-	return r.scanRows(res)
+	query := fmt.Sprintf("SELECT %s FROM user", fields)
+
+	err := r.db.SelectContext(ctx, &users, query)
+
+	return model.ConvertUsersToDomains(users), err
 }
 
 func (r *userSQLRepo) Delete(ctx context.Context, id uuid.UUID) error {
@@ -89,7 +75,7 @@ func (r *userSQLRepo) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (r *userSQLRepo) Update(ctx context.Context, user domain.User) error {
 	res, err := r.db.ExecContext(ctx, `
-	UPDATE USER 
+	UPDATE USER
 	SET name=?, phone=?, email=?, password=?
 	WHERE id=?`,
 		user.Name, user.PhoneNumber, user.Email, user.Password,

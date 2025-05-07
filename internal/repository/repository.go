@@ -2,11 +2,12 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/amirzayi/clean_architect/internal/domain"
 	"github.com/amirzayi/clean_architect/internal/repository/user"
+	"github.com/amirzayi/clean_architect/pkg/paginate"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -14,7 +15,7 @@ type User interface {
 	Create(ctx context.Context, user domain.User) error
 	GetByID(ctx context.Context, id uuid.UUID) (domain.User, error)
 	GetByEmail(ctx context.Context, email string) (domain.User, error)
-	List(ctx context.Context) ([]domain.User, error)
+	List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error)
 	Delete(ctx context.Context, id uuid.UUID) error
 	Update(ctx context.Context, user domain.User) error
 }
@@ -29,7 +30,7 @@ func NewMongoRepositories(db *mongo.Database) *Repositories {
 	}
 }
 
-func NewSQLRepositories(db *sql.DB) *Repositories {
+func NewSQLRepositories(db *sqlx.DB) *Repositories {
 	return &Repositories{
 		User: user.NewUserSQLRepository(db),
 	}

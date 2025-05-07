@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/amirzayi/clean_architect/internal/domain"
+	"github.com/amirzayi/clean_architect/pkg/paginate"
 )
 
 var (
@@ -61,7 +62,7 @@ func (r *userInMemoryRepo) GetByEmail(ctx context.Context, email string) (domain
 	return domain.User{}, ErrUserNotFound
 }
 
-func (r *userInMemoryRepo) List(context.Context) ([]domain.User, error) {
+func (r *userInMemoryRepo) List(_ context.Context, pagination *paginate.Pagination) ([]domain.User, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

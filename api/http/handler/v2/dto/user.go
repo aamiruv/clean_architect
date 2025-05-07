@@ -14,7 +14,7 @@ type UserResponse struct {
 	Email       string    `json:"email"`
 	Status      string    `json:"status"`
 	Role        string    `json:"role"`
-	CreatedAt   time.Time `json:"created_at"`
+	CreatedAt   time.Time `json:"created_at,omitempty"`
 }
 
 type CreateUserRequest struct {
@@ -54,23 +54,12 @@ func (r UpdateUserRequest) ToDomain() domain.User {
 }
 
 func UserDomainToDTO(u domain.User) UserResponse {
-	userStatus := ""
-	switch u.Status {
-	case domain.UsereStatusNew:
-		userStatus = "new"
-	case domain.UserStatusActive:
-		userStatus = "active"
-	case domain.UserStatusBanned:
-		userStatus = "banned"
-	case domain.UserStatusDeleted:
-		userStatus = "deleted"
-	}
 	return UserResponse{
 		ID:          u.ID,
 		Name:        u.Name,
 		PhoneNumber: u.PhoneNumber,
 		Email:       u.Email,
-		Status:      userStatus,
+		Status:      u.Status.String(),
 		Role:        string(u.Role),
 		CreatedAt:   u.CreatedAt,
 	}

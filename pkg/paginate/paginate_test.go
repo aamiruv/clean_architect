@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseFromHttpRequest(t *testing.T) {
+func TestParseFromRequest(t *testing.T) {
 	baseUrl := "/somewhere"
 
 	params := url.Values{}
@@ -23,7 +23,7 @@ func TestParseFromHttpRequest(t *testing.T) {
 	r, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	require.NoError(t, err)
 
-	pagination := paginate.ParseFromHttpRequest(r)
+	pagination := paginate.ParseFromRequest(r)
 
 	require.Contains(t, pagination.Filters, paginate.Filter{
 		Key: "name", Value: "smith", Condition: "like",
