@@ -1,14 +1,10 @@
 package paginate
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -41,18 +37,13 @@ type Filter struct {
 	Condition string `json:"condition"`
 }
 
-type Sort struct {
-	Field   string `json:"field"`
-	Arrange string `json:"arrange"`
-}
-
 type Pagination struct {
-	Page       int      `json:"page,omitempty"`
-	PerPage    int      `json:"per_page,,omitempty"`
-	Fields     string   `json:"fields,omitempty"`
-	Sort       []Sort   `json:"sort,omitempty"`
-	Filters    []Filter `json:"filters,omitempty"`
-	TotalItems int64    `json:"total_items"`
+	Page       int               `json:"page,omitempty"`
+	PerPage    int               `json:"per_page,,omitempty"`
+	Fields     string            `json:"fields,omitempty"`
+	Sort       map[string]string `json:"sort,omitempty"`
+	Filters    []Filter          `json:"filters,omitempty"`
+	TotalItems int64             `json:"total_items"`
 }
 
 type ListResponse struct {
@@ -81,7 +72,7 @@ func ParseFromRequest(r *http.Request) *Pagination {
 
 	fields := queries.Get(fieldsParamName)
 
-	sort := []Sort{}
+	sort := map[string]string{}
 
 	filters := []Filter{}
 
@@ -101,18 +92,14 @@ func ParseFromRequest(r *http.Request) *Pagination {
 		}
 
 		if query == sortParamName {
-			for _, v := range values {
+			for i, v := range values {
 				if isValidSortArrange(v) {
 					if len(sort) > 0 {
-						sort[len(sort)-1].Arrange = v
+						sort[values[i-1]] = v
 					}
 					continue
 				}
-				sorting := Sort{
-					Field:   v,
-					Arrange: defaultSortingArrange,
-				}
-				sort = append(sort, sorting)
+				sort[v] = defaultSortingArrange
 			}
 			continue
 		}
@@ -163,118 +150,4 @@ func isValidFilterCondition(condition string) bool {
 
 func isValidSortArrange(arrange string) bool {
 	return slices.Contains([]string{SortOrderAscending, SortOrderDescending}, arrange)
-}
-
-func SQLList[T any](ctx context.Context, db *sqlx.DB, table string, pagination *Pagination, queryableFields ...string) ([]T, error) {
-	var data []T
-	var query strings.Builder
-
-	query.WriteString(selectQuery(table, pagination.Fields))
-	query.WriteString("\n")
-	whereQuery := whereQuery(pagination.Filters)
-	query.WriteString(whereQuery)
-	query.WriteString("\n")
-	query.WriteString(orderByQuery(pagination.Sort))
-	query.WriteString("\n")
-	query.WriteString(limitQuery(pagination.Page, pagination.PerPage))
-
-	if err := db.SelectContext(ctx, &data, query.String()); err != nil {
-		return nil, err
-	}
-
-	var count int64
-	countQuery := fmt.Sprintf("SELECT count(1) FROM %s %s", table, whereQuery)
-
-	if err := db.GetContext(ctx, &count, countQuery); err != nil {
-		return nil, err
-	}
-
-	pagination.SetTotalItems(count)
-	return data, nil
-}
-
-func selectQuery(table, fields string) string {
-	if fields == "" {
-		fields = "*"
-	}
-	return fmt.Sprintf("SELECT %s FROM %s", fields, table)
-}
-
-func whereQuery(filters []Filter, queryableFields ...string) string {
-	if len(filters) == 0 {
-		return ""
-	}
-
-	var (
-		query                strings.Builder
-		where                string
-		hasAlreadyWhereQuery bool
-	)
-
-	query.WriteString("WHERE ")
-
-	for _, filter := range filters {
-		if len(queryableFields) > 0 {
-			if !slices.Contains(queryableFields, filter.Key) {
-				continue
-			}
-		}
-		switch filter.Condition {
-		case FilterBetween:
-			values := strings.Split(filter.Value, ",")
-			if len(values) < 2 {
-				continue
-			}
-			where = fmt.Sprintf("%s BETWEEN %s AND %s", filter.Key, values[0], values[1])
-
-		case FilterIn:
-			values := strings.Split(filter.Value, ",")
-			if len(values) < 2 {
-				continue
-			}
-			args := filter.Value
-			_, err := strconv.Atoi(values[0])
-			if err != nil {
-				args = strings.Join(values, `","`)
-				args = `"` + args + `"`
-			}
-			where = fmt.Sprintf("%s IN(%s)", filter.Key, args)
-
-		default:
-			where = fmt.Sprintf("%s %s %q", filter.Key, filter.Condition, filter.Value)
-		}
-
-		query.WriteString(where)
-		query.WriteString(" AND ")
-	}
-
-	if !hasAlreadyWhereQuery {
-		return ""
-	}
-
-	// remove last " AND " at end of query
-	whereQuery := strings.TrimRight(query.String(), " AND ")
-	return whereQuery
-}
-
-func orderByQuery(sorts []Sort) string {
-	if len(sorts) == 0 {
-		return ""
-	}
-
-	var query strings.Builder
-
-	query.WriteString("ORDER BY")
-
-	for _, sort := range sorts {
-		query.WriteString(fmt.Sprintf(" %s %s,", sort.Field, sort.Arrange))
-	}
-
-	// remove last "," character at end of query
-	orderByQuery := strings.TrimRight(query.String(), ",")
-	return orderByQuery
-}
-
-func limitQuery(page, perPage int) string {
-	return fmt.Sprintf(" LIMIT %d offset %d", perPage, (page-1)*perPage)
 }

@@ -32,8 +32,8 @@ func ExampleParseFromRequest() {
 	}
 
 	fmt.Println("sorting:")
-	for _, sort := range pagination.Sort {
-		fmt.Printf("%s %s.\n", sort.Field, sort.Arrange)
+	for field, arrange := range pagination.Sort {
+		fmt.Printf("%s %s.\n", field, arrange)
 	}
 
 	// Output:

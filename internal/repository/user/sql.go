@@ -7,6 +7,7 @@ import (
 	"github.com/amirzayi/clean_architect/infra/migrations/model"
 	"github.com/amirzayi/clean_architect/internal/domain"
 	"github.com/amirzayi/clean_architect/pkg/paginate"
+	"github.com/amirzayi/clean_architect/pkg/sqlutil"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -44,7 +45,7 @@ func (r *userSQLRepo) GetByEmail(ctx context.Context, email string) (domain.User
 }
 
 func (r *userSQLRepo) List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error) {
-	users, err := paginate.SQLList[model.User](ctx, r.db, "user", pagination)
+	users, err := sqlutil.PaginatedList[model.User](ctx, r.db, "user", pagination)
 	return model.ConvertUsersToDomains(users), err
 }
 
