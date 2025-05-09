@@ -3,7 +3,6 @@ package sqlutil
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -13,15 +12,15 @@ import (
 
 func PaginatedList[T any](ctx context.Context,
 	db *sqlx.DB, table string,
-	pagination *paginate.Pagination, queryableFields ...string) ([]T, error) {
+	pagination *paginate.Pagination, queryableFields map[string]string) ([]T, error) {
 	var data []T
-	query := BuildPaginationQuery(table, pagination)
+	query := BuildPaginationQuery(table, pagination, queryableFields)
 	if err := db.SelectContext(ctx, &data, query); err != nil {
 		return nil, err
 	}
 
 	var count int64
-	whereQuery := whereQuery(pagination.Filters, queryableFields...)
+	whereQuery := whereQuery(pagination.Filters, queryableFields)
 	countQuery := fmt.Sprintf("SELECT count(1) FROM %s %s", table, whereQuery)
 
 	if err := db.GetContext(ctx, &count, countQuery); err != nil {
@@ -33,12 +32,12 @@ func PaginatedList[T any](ctx context.Context,
 }
 
 func BuildPaginationQuery(table string,
-	pagination *paginate.Pagination, queryableFields ...string) string {
+	pagination *paginate.Pagination, queryableFields map[string]string) string {
 	var query strings.Builder
 
 	query.WriteString(selectQuery(table, pagination.Fields))
 	query.WriteString("\n")
-	whereQuery := whereQuery(pagination.Filters, queryableFields...)
+	whereQuery := whereQuery(pagination.Filters, queryableFields)
 	query.WriteString(whereQuery)
 	query.WriteString("\n")
 	query.WriteString(orderByQuery(pagination.Sort))
@@ -55,7 +54,7 @@ func selectQuery(table, fields string) string {
 	return fmt.Sprintf("SELECT %s FROM %s", fields, table)
 }
 
-func whereQuery(filters []paginate.Filter, queryableFields ...string) string {
+func whereQuery(filters []paginate.Filter, queryableFields map[string]string) string {
 	if len(filters) == 0 {
 		return ""
 	}
@@ -69,18 +68,18 @@ func whereQuery(filters []paginate.Filter, queryableFields ...string) string {
 	query.WriteString("WHERE ")
 
 	for _, filter := range filters {
-		if len(queryableFields) > 0 {
-			if !slices.Contains(queryableFields, filter.Key) {
-				continue
-			}
+		field, ok := queryableFields[filter.Key]
+		if !ok {
+			continue
 		}
+
 		switch filter.Condition {
 		case paginate.FilterBetween:
 			values := strings.Split(filter.Value, ",")
 			if len(values) < 2 {
 				continue
 			}
-			where = fmt.Sprintf("%s BETWEEN %s AND %s", filter.Key, values[0], values[1])
+			where = fmt.Sprintf("%s BETWEEN %s AND %s", field, values[0], values[1])
 
 		case paginate.FilterIn:
 			values := strings.Split(filter.Value, ",")
@@ -93,10 +92,10 @@ func whereQuery(filters []paginate.Filter, queryableFields ...string) string {
 				args = strings.Join(values, `","`)
 				args = `"` + args + `"`
 			}
-			where = fmt.Sprintf("%s IN(%s)", filter.Key, args)
+			where = fmt.Sprintf("%s IN(%s)", field, args)
 
 		default:
-			where = fmt.Sprintf("%s %s %q", filter.Key, filter.Condition, filter.Value)
+			where = fmt.Sprintf("%s %s %q", field, filter.Condition, filter.Value)
 		}
 
 		hasAlreadyWhereQuery = true

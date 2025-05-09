@@ -21,6 +21,14 @@ func TestBuildPaginationQuery(t *testing.T) {
 			{Key: "name", Value: "amir,admin,test", Condition: paginate.FilterIn},
 			{Key: "status", Value: "1,2", Condition: paginate.FilterIn},
 		},
+	}, map[string]string{
+		"id":         "id",
+		"name":       "name",
+		"phone":      "phone",
+		"email":      "email",
+		"status":     "status",
+		"role":       "role",
+		"created_at": "created_at",
 	})
 
 	require.NotEmpty(t, query)

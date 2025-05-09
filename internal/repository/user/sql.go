@@ -45,7 +45,15 @@ func (r *userSQLRepo) GetByEmail(ctx context.Context, email string) (domain.User
 }
 
 func (r *userSQLRepo) List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error) {
-	users, err := sqlutil.PaginatedList[model.User](ctx, r.db, "user", pagination)
+	users, err := sqlutil.PaginatedList[model.User](ctx, r.db, "user", pagination, map[string]string{
+		"id":         "id",
+		"name":       "name",
+		"phone":      "phone",
+		"email":      "email",
+		"status":     "status",
+		"role":       "role",
+		"created_at": "created_at",
+	})
 	return model.ConvertUsersToDomains(users), err
 }
 
