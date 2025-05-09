@@ -47,11 +47,12 @@ func BuildPaginationQuery(table string,
 	return query.String()
 }
 
-func selectQuery(table, fields string) string {
-	if fields == "" {
-		fields = "*"
+func selectQuery(table string, fields []string) string {
+	selectFields := "*"
+	if len(fields) > 0 {
+		selectFields = strings.Join(fields, ",")
 	}
-	return fmt.Sprintf("SELECT %s FROM %s", fields, table)
+	return fmt.Sprintf("SELECT %s FROM %s", selectFields, table)
 }
 
 func whereQuery(filters []paginate.Filter, queryableFields map[string]string) string {
@@ -112,7 +113,7 @@ func whereQuery(filters []paginate.Filter, queryableFields map[string]string) st
 	return whereQuery
 }
 
-func orderByQuery(sorts map[string]string) string {
+func orderByQuery(sorts []paginate.Sort) string {
 	if len(sorts) == 0 {
 		return ""
 	}
@@ -121,8 +122,8 @@ func orderByQuery(sorts map[string]string) string {
 
 	query.WriteString("ORDER BY")
 
-	for field, arrange := range sorts {
-		query.WriteString(fmt.Sprintf(" %s %s,", field, arrange))
+	for _, sort := range sorts {
+		query.WriteString(fmt.Sprintf(" %s %s,", sort.Field, sort.Arrange))
 	}
 
 	// remove last "," character at end of query

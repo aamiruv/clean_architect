@@ -37,13 +37,18 @@ type Filter struct {
 	Condition string `json:"condition"`
 }
 
+type Sort struct {
+	Field   string `json:"field"`
+	Arrange string `json:"arrange"`
+}
+
 type Pagination struct {
-	Page       int               `json:"page,omitempty"`
-	PerPage    int               `json:"per_page,,omitempty"`
-	Fields     string            `json:"fields,omitempty"`
-	Sort       map[string]string `json:"sort,omitempty"`
-	Filters    []Filter          `json:"filters,omitempty"`
-	TotalItems int64             `json:"total_items"`
+	Page       int      `json:"page,omitempty"`
+	PerPage    int      `json:"per_page,,omitempty"`
+	Fields     []string `json:"fields,omitempty"`
+	Sort       []Sort   `json:"sort,omitempty"`
+	Filters    []Filter `json:"filters,omitempty"`
+	TotalItems int64    `json:"total_items"`
 }
 
 type ListResponse struct {
@@ -70,9 +75,9 @@ func ParseFromRequest(r *http.Request) *Pagination {
 		}
 	}
 
-	fields := queries.Get(fieldsParamName)
+	fields := strings.Split(queries.Get(fieldsParamName), ",")
 
-	sort := map[string]string{}
+	sort := []Sort{}
 
 	filters := []Filter{}
 
@@ -92,14 +97,18 @@ func ParseFromRequest(r *http.Request) *Pagination {
 		}
 
 		if query == sortParamName {
-			for i, v := range values {
+			for _, v := range values {
 				if isValidSortArrange(v) {
 					if len(sort) > 0 {
-						sort[values[i-1]] = v
+						sort[len(sort)-1].Arrange = v
 					}
 					continue
 				}
-				sort[v] = defaultSortingArrange
+				sorting := Sort{
+					Field:   v,
+					Arrange: defaultSortingArrange,
+				}
+				sort = append(sort, sorting)
 			}
 			continue
 		}

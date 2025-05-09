@@ -11,10 +11,10 @@ func ExampleBuildPaginationQuery() {
 	query := sqlutil.BuildPaginationQuery("user", &paginate.Pagination{
 		Page:    3,
 		PerPage: 15,
-		Fields:  "name,id,phone,role,status",
-		Sort: map[string]string{
-			"id":   paginate.SortOrderDescending,
-			"name": paginate.SortOrderAscending,
+		Fields:  []string{"name", "id", "phone", "role", "status"},
+		Sort: []paginate.Sort{
+			{Field: "id", Arrange: paginate.SortOrderDescending},
+			{Field: "name", Arrange: paginate.SortOrderAscending},
 		},
 		Filters: []paginate.Filter{
 			{Key: "name", Value: "amir,admin,test", Condition: paginate.FilterIn},
