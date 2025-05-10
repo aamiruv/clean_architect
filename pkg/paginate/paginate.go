@@ -75,7 +75,11 @@ func ParseFromRequest(r *http.Request) *Pagination {
 		}
 	}
 
-	fields := strings.Split(queries.Get(fieldsParamName), ",")
+	fields := []string{}
+
+	if f := queries.Get(fieldsParamName); f != "" {
+		fields = strings.Split(f, ",")
+	}
 
 	sort := []Sort{}
 

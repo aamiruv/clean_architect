@@ -8,7 +8,7 @@ import (
 )
 
 func ExampleBuildPaginationQuery() {
-	query := sqlutil.BuildPaginationQuery("user", &paginate.Pagination{
+	query, args := sqlutil.BuildPaginationQuery("user", &paginate.Pagination{
 		Page:    3,
 		PerPage: 15,
 		Fields:  []string{"name", "id", "phone", "role", "status"},
@@ -29,11 +29,13 @@ func ExampleBuildPaginationQuery() {
 		"role":       "role",
 		"created_at": "created_at",
 	})
-	fmt.Print(query)
+	fmt.Println(query)
+	fmt.Println(args)
 
-	// Unordered output:
+	// Output:
 	// SELECT name,id,phone,role,status FROM user
-	// WHERE name IN("amir","admin","test") AND status IN(1,2)
+	// WHERE name IN(?,?,?) AND status IN(?,?)
 	// ORDER BY id desc, name asc
-	// LIMIT 15 offset 30
+	// LIMIT ? offset ?
+	// [amir admin test 1 2 15 30]
 }

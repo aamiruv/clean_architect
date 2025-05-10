@@ -9,7 +9,7 @@ import (
 )
 
 func TestBuildPaginationQuery(t *testing.T) {
-	query := sqlutil.BuildPaginationQuery("user", &paginate.Pagination{
+	query, args := sqlutil.BuildPaginationQuery("user", &paginate.Pagination{
 		Page:    3,
 		PerPage: 15,
 		Fields:  []string{"name", "id", "phone", "role", "status"},
@@ -32,10 +32,9 @@ func TestBuildPaginationQuery(t *testing.T) {
 	})
 
 	require.NotEmpty(t, query)
+	require.NotEmpty(t, args)
 	require.Contains(t, query, "SELECT name,id,phone,role,status FROM user")
-	require.Contains(t, query, `WHERE name IN("amir","admin","test") AND status IN(1,2)`)
-	require.Contains(t, query, "ORDER BY")
-	require.Contains(t, query, "id desc")
-	require.Contains(t, query, "name asc")
-	require.Contains(t, query, "LIMIT 15 offset 30")
+	require.Contains(t, query, "WHERE name IN(?,?,?) AND status IN(?,?)")
+	require.Contains(t, query, "ORDER BY id desc, name asc")
+	require.Contains(t, query, "LIMIT ? offset ?")
 }

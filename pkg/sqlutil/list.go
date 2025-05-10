@@ -3,7 +3,6 @@ package sqlutil
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/amirzayi/clean_architect/pkg/paginate"
@@ -14,16 +13,16 @@ func PaginatedList[T any](ctx context.Context,
 	db *sqlx.DB, table string,
 	pagination *paginate.Pagination, queryableFields map[string]string) ([]T, error) {
 	var data []T
-	query := BuildPaginationQuery(table, pagination, queryableFields)
-	if err := db.SelectContext(ctx, &data, query); err != nil {
+	query, args := BuildPaginationQuery(table, pagination, queryableFields)
+
+	if err := db.SelectContext(ctx, &data, query, args...); err != nil {
 		return nil, err
 	}
-
 	var count int64
-	whereQuery := whereQuery(pagination.Filters, queryableFields)
+	whereQuery, whereArgs := whereQuery(pagination.Filters, queryableFields)
 	countQuery := fmt.Sprintf("SELECT count(1) FROM %s %s", table, whereQuery)
 
-	if err := db.GetContext(ctx, &count, countQuery); err != nil {
+	if err := db.GetContext(ctx, &count, countQuery, whereArgs...); err != nil {
 		return nil, err
 	}
 
@@ -32,19 +31,27 @@ func PaginatedList[T any](ctx context.Context,
 }
 
 func BuildPaginationQuery(table string,
-	pagination *paginate.Pagination, queryableFields map[string]string) string {
+	pagination *paginate.Pagination, queryableFields map[string]string) (string, []any) {
 	var query strings.Builder
+
+	var args []any
 
 	query.WriteString(selectQuery(table, pagination.Fields))
 	query.WriteString("\n")
-	whereQuery := whereQuery(pagination.Filters, queryableFields)
+
+	whereQuery, whereArgs := whereQuery(pagination.Filters, queryableFields)
+	args = append(args, whereArgs...)
 	query.WriteString(whereQuery)
 	query.WriteString("\n")
+
 	query.WriteString(orderByQuery(pagination.Sort))
 	query.WriteString("\n")
-	query.WriteString(limitQuery(pagination.Page, pagination.PerPage))
 
-	return query.String()
+	limit, limitArgs := limitQuery(pagination.Page, pagination.PerPage)
+	args = append(args, limitArgs...)
+	query.WriteString(limit)
+
+	return query.String(), args
 }
 
 func selectQuery(table string, fields []string) string {
@@ -55,15 +62,16 @@ func selectQuery(table string, fields []string) string {
 	return fmt.Sprintf("SELECT %s FROM %s", selectFields, table)
 }
 
-func whereQuery(filters []paginate.Filter, queryableFields map[string]string) string {
+func whereQuery(filters []paginate.Filter, queryableFields map[string]string) (string, []any) {
 	if len(filters) == 0 {
-		return ""
+		return "", nil
 	}
 
 	var (
 		query                strings.Builder
 		where                string
 		hasAlreadyWhereQuery bool
+		args                 []any
 	)
 
 	query.WriteString("WHERE ")
@@ -80,23 +88,26 @@ func whereQuery(filters []paginate.Filter, queryableFields map[string]string) st
 			if len(values) < 2 {
 				continue
 			}
-			where = fmt.Sprintf("%s BETWEEN %s AND %s", field, values[0], values[1])
+			where = fmt.Sprintf("%s BETWEEN ? AND ?", field)
+			args = append(args, values[0], values[1])
 
 		case paginate.FilterIn:
 			values := strings.Split(filter.Value, ",")
 			if len(values) < 2 {
 				continue
 			}
-			args := filter.Value
-			_, err := strconv.ParseFloat(values[0], 64)
-			if err != nil {
-				args = strings.Join(values, `","`)
-				args = `"` + args + `"`
+
+			for _, v := range values {
+				args = append(args, v)
 			}
-			where = fmt.Sprintf("%s IN(%s)", field, args)
+			where = fmt.Sprintf("%s IN(?%s)", field, strings.Repeat(",?", len(values)-1))
 
 		default:
-			where = fmt.Sprintf("%s %s %q", field, filter.Condition, filter.Value)
+			if strings.Contains(filter.Value, ",") {
+				continue
+			}
+			args = append(args, filter.Value)
+			where = fmt.Sprintf("%s %s ?", field, conditionToSql(filter.Condition))
 		}
 
 		hasAlreadyWhereQuery = true
@@ -105,12 +116,12 @@ func whereQuery(filters []paginate.Filter, queryableFields map[string]string) st
 	}
 
 	if !hasAlreadyWhereQuery {
-		return ""
+		return "", nil
 	}
 
 	// remove last " AND " at end of query
 	whereQuery := strings.TrimRight(query.String(), " AND ")
-	return whereQuery
+	return whereQuery, args
 }
 
 func orderByQuery(sorts []paginate.Sort) string {
@@ -131,6 +142,26 @@ func orderByQuery(sorts []paginate.Sort) string {
 	return orderByQuery
 }
 
-func limitQuery(page, perPage int) string {
-	return fmt.Sprintf("LIMIT %d offset %d", perPage, (page-1)*perPage)
+func limitQuery(page, perPage int) (string, []any) {
+	return fmt.Sprintf("LIMIT ? offset ?"), []any{perPage, (page - 1) * perPage}
+}
+
+func conditionToSql(condition string) string {
+	switch condition {
+	case paginate.FilterEqual:
+		return "="
+	case paginate.FilterNotEqual:
+		return "<>"
+	case paginate.FilterGreater:
+		return ">"
+	case paginate.FilterGreaterEqual:
+		return ">="
+	case paginate.FilterLess:
+		return "<"
+	case paginate.FilterLessEqual:
+		return "<="
+
+	default:
+		return ""
+	}
 }

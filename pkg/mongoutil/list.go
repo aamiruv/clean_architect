@@ -2,7 +2,6 @@ package mongoutil
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -102,8 +101,7 @@ func filterAggregate(filters []paginate.Filter, queryableFields map[string]strin
 			match = bson.D{{Key: field, Value: bson.D{{Key: "$gte", Value: sanitize(values[0])}, {Key: "$lte", Value: sanitize(values[1])}}}}
 
 		default:
-			condition := fmt.Sprintf("$%s", filter.Condition)
-			match = bson.D{{Key: field, Value: bson.D{{Key: condition, Value: sanitize(filter.Value)}}}}
+			match = bson.D{{Key: field, Value: bson.D{{Key: conditionToNosql(filter.Condition), Value: sanitize(filter.Value)}}}}
 		}
 
 		filterAggregate = append(filterAggregate, match...)
@@ -111,6 +109,25 @@ func filterAggregate(filters []paginate.Filter, queryableFields map[string]strin
 	return filterAggregate
 }
 
+func conditionToNosql(condition string) string {
+	switch condition {
+	case paginate.FilterEqual:
+		return "$eq"
+	case paginate.FilterNotEqual:
+		return "$neq"
+	case paginate.FilterGreater:
+		return "$gt"
+	case paginate.FilterGreaterEqual:
+		return "$gte"
+	case paginate.FilterLess:
+		return "$lt"
+	case paginate.FilterLessEqual:
+		return "$lte"
+
+	default:
+		return ""
+	}
+}
 func sanitize(v string) any {
 	if digit, err := strconv.ParseFloat(v, 64); err == nil {
 		return digit
