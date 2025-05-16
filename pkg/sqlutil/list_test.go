@@ -37,4 +37,5 @@ func TestBuildPaginationQuery(t *testing.T) {
 	require.Contains(t, query, "WHERE name IN(?,?,?) AND status IN(?,?)")
 	require.Contains(t, query, "ORDER BY id desc, name asc")
 	require.Contains(t, query, "LIMIT ? offset ?")
+	require.Equal(t, args, []any{"amir", "admin", "test", "1", "2", 15, 30})
 }

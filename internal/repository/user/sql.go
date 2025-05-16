@@ -33,15 +33,15 @@ func (r *userSQLRepo) Create(ctx context.Context, user domain.User) error {
 }
 
 func (r *userSQLRepo) GetByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
-	var user domain.User
+	var user model.User
 	err := r.db.GetContext(ctx, &user, "SELECT * FROM user WHERE id=? LIMIT 1", id)
-	return user, err
+	return model.ConvertUserToDomain(user), err
 }
 
 func (r *userSQLRepo) GetByEmail(ctx context.Context, email string) (domain.User, error) {
-	var user domain.User
+	var user model.User
 	err := r.db.GetContext(ctx, &user, "SELECT * FROM user WHERE email=? LIMIT 1", email)
-	return user, err
+	return model.ConvertUserToDomain(user), err
 }
 
 func (r *userSQLRepo) List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error) {

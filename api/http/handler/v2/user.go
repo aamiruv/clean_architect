@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"compress/gzip"
 	"net/http"
 
 	"github.com/amirzayi/clean_architect/api/http/handler/v2/dto"
@@ -23,7 +24,7 @@ func UserRoutes(logMiddleware middleware.Middleware, userService service.User, a
 	user := &userRouter{userService: userService}
 	return rahjoo.NewGroupRoute("/v2/users", rahjoo.Route{
 		"": {
-			http.MethodGet:  rahjoo.NewHandler(user.list),
+			http.MethodGet:  rahjoo.NewHandler(user.list, appmiddleware.GzipCompress(gzip.BestCompression)),
 			http.MethodPost: rahjoo.NewHandler(user.create),
 		},
 		"/{id}": {
