@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -57,11 +56,13 @@ func main() {
 
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return
 	}
 
 	if err = run(ctx, cfg); err != nil {
-		log.Fatal(err)
+		slog.Error(err.Error())
+		return
 	}
 }
 
@@ -164,6 +165,7 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 		AuthManager:  authManager,
 		Cache:        cacheDriver,
 		Event:        eventDriver,
+		Logger:       defaultLogger,
 	})
 
 	gwMux := runtime.NewServeMux()
@@ -229,21 +231,21 @@ func run(ctx context.Context, cfg config.AppConfig) error {
 			errCh <- fmt.Errorf("failed to run web server: %w", err)
 		}
 	}()
-	log.Printf("web server initialized on %s", cfg.Web().Address())
+	slog.Debug("web server initialized on " + cfg.Web().Address())
 
 	go func() {
 		if err = grpcServer.Run(); err != nil {
 			errCh <- fmt.Errorf("failed to run grpc server: %w", err)
 		}
 	}()
-	log.Printf("grpc server initialized on %s", cfg.GRPC().Address())
+	slog.Debug("grpc server initialized on " + cfg.GRPC().Address())
 
 	select {
 	case err = <-errCh:
-		log.Println(err)
+		slog.Error(err.Error())
 
 	case <-exitCtx.Done():
-		log.Println("received terminate signal")
+		slog.Debug("received terminate signal")
 	}
 
 	wg := sync.WaitGroup{}

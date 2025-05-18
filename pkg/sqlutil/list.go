@@ -13,15 +13,15 @@ func PaginatedList[T any](ctx context.Context,
 	db *sqlx.DB, table string,
 	pagination *paginate.Pagination, queryableFields map[string]string) ([]T, error) {
 	var data []T
-	query, args := BuildPaginationQuery(table, pagination, queryableFields)
 
+	query, args := BuildPaginationQuery(table, pagination, queryableFields)
 	if err := db.SelectContext(ctx, &data, query, args...); err != nil {
 		return nil, err
 	}
+
 	var count int64
 	whereQuery, whereArgs := whereQuery(pagination.Filters, queryableFields)
 	countQuery := fmt.Sprintf("SELECT count(1) FROM %s %s", table, whereQuery)
-
 	if err := db.GetContext(ctx, &count, countQuery, whereArgs...); err != nil {
 		return nil, err
 	}

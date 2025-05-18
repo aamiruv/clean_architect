@@ -3,6 +3,7 @@ package handler_test
 import (
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"testing"
 	"time"
@@ -72,6 +73,7 @@ func TestMain(m *testing.M) {
 		AuthManager:  authManager,
 		Cache:        cache.NewInMemoryDriver(),
 		Event:        bus.NewInMemoryDriver([]string{}),
+		Logger:       slog.Default(),
 	})
 	handler.Register(mux, log.New(io.Discard, "", 0), services, authManager)
 	m.Run()

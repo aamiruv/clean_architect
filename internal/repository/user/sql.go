@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/amirzayi/clean_architect/infra/migrations/model"
@@ -35,12 +37,18 @@ func (r *userSQLRepo) Create(ctx context.Context, user domain.User) error {
 func (r *userSQLRepo) GetByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	var user model.User
 	err := r.db.GetContext(ctx, &user, "SELECT * FROM user WHERE id=? LIMIT 1", id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.User{}, domain.ErrUserNotFound
+	}
 	return model.ConvertUserToDomain(user), err
 }
 
 func (r *userSQLRepo) GetByEmail(ctx context.Context, email string) (domain.User, error) {
 	var user model.User
 	err := r.db.GetContext(ctx, &user, "SELECT * FROM user WHERE email=? LIMIT 1", email)
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.User{}, domain.ErrUserNotFound
+	}
 	return model.ConvertUserToDomain(user), err
 }
 
@@ -67,7 +75,7 @@ func (r *userSQLRepo) Delete(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	if rowsAffected == 0 {
-		return ErrUserNotFound
+		return domain.ErrUserNotFound
 	}
 	return nil
 }
@@ -87,7 +95,7 @@ func (r *userSQLRepo) Update(ctx context.Context, user domain.User) error {
 		return err
 	}
 	if rowsAffected == 0 {
-		return ErrUserNotFound
+		return domain.ErrUserNotFound
 	}
 	return nil
 }

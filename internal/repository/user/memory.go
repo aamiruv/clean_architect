@@ -2,18 +2,12 @@ package user
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/google/uuid"
 
 	"github.com/amirzayi/clean_architect/internal/domain"
 	"github.com/amirzayi/clean_architect/pkg/paginate"
-)
-
-var (
-	ErrUserAlreadyExists = errors.New("user already exists")
-	ErrUserNotFound      = errors.New("user not found")
 )
 
 type userInMemoryRepo struct {
@@ -30,7 +24,7 @@ func NewUserInMemoryRepo() *userInMemoryRepo {
 func (r *userInMemoryRepo) Create(ctx context.Context, user domain.User) error {
 	user, err := r.GetByID(ctx, user.ID)
 	if err == nil {
-		return ErrUserAlreadyExists
+		return domain.ErrUserAlreadyExists
 	}
 
 	r.mu.Lock()
@@ -44,7 +38,7 @@ func (r *userInMemoryRepo) GetByID(_ context.Context, id uuid.UUID) (domain.User
 	defer r.mu.RUnlock()
 	user, ok := r.store[id]
 	if !ok {
-		return domain.User{}, ErrUserNotFound
+		return domain.User{}, domain.ErrUserNotFound
 	}
 	return user, nil
 }
@@ -59,7 +53,7 @@ func (r *userInMemoryRepo) GetByEmail(ctx context.Context, email string) (domain
 		}
 	}
 
-	return domain.User{}, ErrUserNotFound
+	return domain.User{}, domain.ErrUserNotFound
 }
 
 func (r *userInMemoryRepo) List(_ context.Context, pagination *paginate.Pagination) ([]domain.User, error) {

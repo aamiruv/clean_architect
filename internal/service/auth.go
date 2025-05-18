@@ -3,10 +3,13 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/amirzayi/clean_architect/internal/domain"
 	"github.com/amirzayi/clean_architect/pkg/auth"
+	"github.com/amirzayi/clean_architect/pkg/errs"
 	"github.com/amirzayi/clean_architect/pkg/hash"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Auth interface {
@@ -18,6 +21,7 @@ type authService struct {
 	userService User
 	hasher      hash.PasswordHasher
 	authManager auth.Manager
+	logger      *slog.Logger
 }
 
 func NewAuthService(userService User, hasher hash.PasswordHasher, authManager auth.Manager) Auth {
@@ -31,7 +35,8 @@ func NewAuthService(userService User, hasher hash.PasswordHasher, authManager au
 func (a *authService) Register(ctx context.Context, auth domain.Auth) error {
 	pwd, err := a.hasher.Hash(auth.Password)
 	if err != nil {
-		return err
+		a.logger.Error("failed to create hashed password", slog.Any("error", err))
+		return errs.New(err, errs.CodeInternal)
 	}
 
 	user := domain.User{
@@ -55,13 +60,21 @@ func (a *authService) Login(ctx context.Context, auth domain.Auth) (string, erro
 	}
 
 	if user.Status == domain.UserStatusBanned {
-		return "", errors.New("user is banned")
+		return "", errs.New(errors.New("user banned"), errs.CodeForbiddenAccess)
 	}
 
 	if err = a.hasher.Compare(user.Password, auth.Password); err != nil {
-		return "", err
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return "", errs.NotFound("user by given credentials")
+		}
+		a.logger.Error("failed to compare hashed password", slog.Any("error", err))
+		return "", errs.New(err, errs.CodeInternal)
 	}
 
 	token, err := a.authManager.CreateToken(user.ID, string(user.Role))
-	return token, err
+	if err != nil {
+		a.logger.Error("failed to create token", slog.Any("error", err))
+		return "", errs.New(err, errs.CodeInternal)
+	}
+	return token, nil
 }

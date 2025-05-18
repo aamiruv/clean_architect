@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,14 +30,21 @@ func (r *userMongoRepo) Create(ctx context.Context, user domain.User) error {
 func (r *userMongoRepo) GetByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	var user domain.User
 	err := r.db.FindOne(ctx, bson.M{"id": id}).Decode(&user)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return user, domain.ErrUserNotFound
+	}
 	return user, err
 }
 
 func (r *userMongoRepo) GetByEmail(ctx context.Context, email string) (domain.User, error) {
 	var user domain.User
 	err := r.db.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return user, domain.ErrUserNotFound
+	}
 	return user, err
 }
+
 func (r *userMongoRepo) List(ctx context.Context, pagination *paginate.Pagination) ([]domain.User, error) {
 	var users []domain.User
 	cursor, err := r.db.Find(ctx, nil)
@@ -58,7 +66,7 @@ func (r *userMongoRepo) Delete(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return ErrUserNotFound
+		return domain.ErrUserNotFound
 	}
 	return nil
 }
@@ -71,7 +79,7 @@ func (r *userMongoRepo) Update(ctx context.Context, user domain.User) error {
 		return err
 	}
 	if res.MatchedCount == 0 {
-		return ErrUserNotFound
+		return domain.ErrUserNotFound
 	}
 	return nil
 }
