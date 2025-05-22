@@ -14,6 +14,7 @@ import (
 	"github.com/amirzayi/clean_architect/pkg/cache"
 	"github.com/amirzayi/clean_architect/pkg/errs"
 	"github.com/amirzayi/clean_architect/pkg/paginate"
+	"github.com/amirzayi/clean_architect/pkg/synq"
 )
 
 type User interface {
@@ -24,19 +25,23 @@ type User interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	Update(ctx context.Context, user domain.User) error
 }
+
 type user struct {
 	db       repository.User
 	cache    cache.Cache[domain.User]
 	eventBus bus.EventBus[domain.User]
 	logger   *slog.Logger
+	dbcache  synq.CacheSync[domain.User]
 }
 
 func NewUserService(db repository.User, cacheDriver cache.Driver, eventDriver bus.Driver, logger *slog.Logger) User {
+	cache := cache.New[domain.User](cacheDriver, "user", time.Hour)
 	return &user{
 		db:       db,
-		cache:    cache.New[domain.User](cacheDriver),
+		cache:    cache,
 		eventBus: bus.New[domain.User](eventDriver),
 		logger:   logger,
+		dbcache:  synq.New(cache, logger),
 	}
 }
 
@@ -45,7 +50,10 @@ func (u *user) Create(ctx context.Context, user domain.User) (domain.User, error
 	user.Status = domain.UsereStatusNew
 	user.CreatedAt = time.Now()
 
-	if err := u.db.Create(ctx, user); err != nil {
+	err := u.dbcache.SetAsync(user.ID.String(), user, func() error {
+		return u.db.Create(ctx, user)
+	})
+	if err != nil {
 		if errors.Is(err, domain.ErrUserAlreadyExists) {
 			return domain.User{}, errs.New(err, errs.CodeExisted)
 		}
@@ -56,7 +64,9 @@ func (u *user) Create(ctx context.Context, user domain.User) (domain.User, error
 }
 
 func (u *user) GetByEmail(ctx context.Context, email string) (domain.User, error) {
-	user, err := u.db.GetByEmail(ctx, email)
+	user, err := u.dbcache.GetAsync(ctx, email, func() (domain.User, error) {
+		return u.db.GetByEmail(ctx, email)
+	})
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			return domain.User{}, errs.NotFound("user")
@@ -77,7 +87,10 @@ func (u *user) List(ctx context.Context, pagination *paginate.Pagination) ([]dom
 }
 
 func (u *user) Delete(ctx context.Context, id uuid.UUID) error {
-	if err := u.db.Delete(ctx, id); err != nil {
+	err := u.dbcache.DeleteAsync(id.String(), func() error {
+		return u.db.Delete(ctx, id)
+	})
+	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			return errs.NotFound("user")
 		}
@@ -88,7 +101,10 @@ func (u *user) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (u *user) Update(ctx context.Context, user domain.User) error {
-	if err := u.db.Update(ctx, user); err != nil {
+	err := u.dbcache.SetAsync(user.ID.String(), user, func() error {
+		return u.db.Update(ctx, user)
+	})
+	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			return errs.NotFound("user")
 		}
@@ -99,7 +115,9 @@ func (u *user) Update(ctx context.Context, user domain.User) error {
 }
 
 func (u *user) GetByID(ctx context.Context, id uuid.UUID) (domain.User, error) {
-	user, err := u.db.GetByID(ctx, id)
+	user, err := u.dbcache.GetAsync(ctx, id.String(), func() (domain.User, error) {
+		return u.db.GetByID(ctx, id)
+	})
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			return user, errs.NotFound("user")

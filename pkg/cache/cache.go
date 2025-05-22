@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -21,31 +22,37 @@ type Driver interface {
 }
 
 type Cache[T any] interface {
-	Set(ctx context.Context, key string, value T, ttl time.Duration) error
+	Set(ctx context.Context, key string, value T) error
 	Get(ctx context.Context, key string) (value T, err error)
 	Delete(ctx context.Context, key string) error
 }
 
 type typedCache[T any] struct {
-	drv Driver
+	drv    Driver
+	prefix string
+	ttl    time.Duration
 }
 
-func New[T any](drv Driver) Cache[T] {
-	return typedCache[T]{drv: drv}
+func New[T any](drv Driver, prefix string, ttl time.Duration) Cache[T] {
+	return typedCache[T]{
+		drv:    drv,
+		prefix: prefix,
+		ttl:    ttl,
+	}
 }
 
-func (c typedCache[T]) Set(ctx context.Context, key string, value T, ttl time.Duration) error {
+func (c typedCache[T]) Set(ctx context.Context, key string, value T) error {
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(value); err != nil {
 		return err
 	}
-	return c.drv.Set(ctx, key, buf.Bytes(), ttl)
+	return c.drv.Set(ctx, fmt.Sprintf("%s:%s", c.prefix, key), buf.Bytes(), c.ttl)
 }
 
 func (c typedCache[T]) Get(ctx context.Context, key string) (T, error) {
 	var v T
 
-	b, err := c.drv.Get(ctx, key)
+	b, err := c.drv.Get(ctx, fmt.Sprintf("%s:%s", c.prefix, key))
 	if err != nil {
 		return v, err
 	}
@@ -57,5 +64,5 @@ func (c typedCache[T]) Get(ctx context.Context, key string) (T, error) {
 }
 
 func (c typedCache[T]) Delete(ctx context.Context, key string) error {
-	return c.drv.Delete(ctx, key)
+	return c.drv.Delete(ctx, fmt.Sprintf("%s:%s", c.prefix, key))
 }
